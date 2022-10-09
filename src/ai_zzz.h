@@ -189,6 +189,64 @@ namespace ai_zzz
         size_t map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const;
     };
 
+    class IO_v08
+    {
+    public:
+        typedef search_tspin::Search::TSpinType TSpinType;
+        typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        struct Config
+        {
+            int const* table;
+            int table_max;
+        };
+        struct Result
+        {
+            double value;
+            int clear;
+            int count;
+            int t2_value;
+            int t3_value;
+            m_tetris::TetrisMap const* map;
+        };
+        struct Status
+        {
+            int max_combo;
+            int max_attack;
+            int death;
+            int combo;
+            int attack;
+            int under_attack;
+            int map_rise;
+            int b2bcnt;
+            int board_fill;
+            bool b2b;
+            double like;
+            double value;
+            bool operator < (Status const&) const;
+        };
+    public:
+        int8_t get_safe(m_tetris::TetrisMap const& m, char t) const;
+        void init(m_tetris::TetrisContext const* context, Config const* config);
+        std::string ai_name() const;
+        double ratio() const
+        {
+            return 1.5;
+        }
+        Result eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const;
+        Status get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, m_tetris::TetrisContext::Env const& env) const;
+    private:
+        m_tetris::TetrisContext const* context_;
+        Config const* config_;
+        int col_mask_, row_mask_;
+        int full_count_;
+        struct MapInDangerData
+        {
+            int data[4];
+        };
+        std::vector<MapInDangerData> map_danger_data_;
+        size_t map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const;
+    };
+
     class TOJ
     {
     public:

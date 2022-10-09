@@ -1566,6 +1566,485 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
+    bool IO_v08::Status::operator < (Status const& other) const
+    {
+        return value < other.value;
+    }
+
+    int8_t IO_v08::get_safe(m_tetris::TetrisMap const& m, char t) const {
+        int safe = 0;
+        while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
+        {
+            ++safe;
+        }
+        return safe;
+    }
+
+    void IO_v08::init(m_tetris::TetrisContext const* context, Config const* config)
+    {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+        full_count_ = context->width() * 24;
+        map_danger_data_.resize(context->type_max());
+        for (size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const* node = context->generate(i);
+            node->attach(context, map);
+            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            for (int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+    }
+
+    std::string IO_v08::ai_name() const
+    {
+        return "ZZZ TOJ v0.8";
+    }
+
+    IO_v08::Result IO_v08::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+        int ColTrans = 2 * (map.height - map.roof);
+        int RowTrans = map.roof == map.height ? 0 : map.width;
+        for (int y = 0; y < map.roof; ++y)
+        {
+            if (!map.full(0, y))
+            {
+                ++ColTrans;
+            }
+            if (!map.full(width_m1, y))
+            {
+                ++ColTrans;
+            }
+            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int HoleDepth;
+            int WellDepth;
+
+            int HoleNum[32];
+            int WellNum[32];
+
+            int LineCoverBits;
+            int HolePosyIndex;
+        } v;
+        std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
+
+        for (int y = map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= map.row[y];
+            int LineHole = v.LineCoverBits ^ map.row[y];
+            if (LineHole != 0)
+            {
+                ++v.HoleLine;
+                a[v.HolePosyIndex].ClearWidth = 0;
+                for (int hy = y + 1; hy < map.roof; ++hy)
+                {
+                    uint32_t CheckLine = LineHole & map.row[hy];
+                    if (CheckLine == 0)
+                    {
+                        break;
+                    }
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
+                }
+                ++v.HolePosyIndex;
+            }
+            for (int x = 1; x < width_m1; ++x)
+            {
+                if ((LineHole >> x) & 1)
+                {
+                    v.HoleDepth += ++v.HoleNum[x];
+                }
+                else
+                {
+                    v.HoleNum[x] = 0;
+                }
+                if (((v.LineCoverBits >> (x - 1)) & 7) == 5)
+                {
+                    v.WellDepth += ++v.WellNum[x];
+                }
+            }
+            if (LineHole & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[0];
+            }
+            else
+            {
+                v.HoleNum[0] = 0;
+            }
+            if ((v.LineCoverBits & 3) == 2)
+            {
+                v.WellDepth += ++v.WellNum[0];
+            }
+            if ((LineHole >> width_m1) & 1)
+            {
+                v.HoleDepth += ++v.HoleNum[width_m1];
+            }
+            else
+            {
+                v.HoleNum[width_m1] = 0;
+            }
+            if (((v.LineCoverBits >> (width_m1 - 1)) & 3) == 1)
+            {
+                v.WellDepth += ++v.WellNum[width_m1];
+            }
+        }
+
+        Result result;
+        result.value = (0.
+            - map.roof * 128
+            - ColTrans * 160
+            - RowTrans * 160
+            - v.HoleCount * 80
+            - v.HoleLine * 380
+            - v.WellDepth * 100
+            - v.HoleDepth * 40
+            );
+        double rate = 32, mul = 1.0 / 4;
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.value -= a[i].ClearWidth * rate;
+        }
+        result.count = map.count + v.HoleCount;
+        result.clear = clear;
+        result.t2_value = 0;
+        result.t3_value = 0;
+        result.map = &map;
+        bool finding2 = true;
+        bool finding3 = true;
+        for (int y = 0; (finding2 || finding3) && y < map.roof - 2; ++y)
+        {
+            int row0 = map.row[y];
+            int row1 = map.row[y + 1];
+            int row2 = y + 2 < map.height ? map.row[y + 2] : 0;
+            int row3 = y + 3 < map.height ? map.row[y + 3] : 0;
+            int row4 = y + 4 < map.height ? map.row[y + 4] : 0;
+            for (int x = 0; finding2 && x < map.width - 2; ++x)
+            {
+                if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
+                {
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        result.t2_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 3)
+                        {
+                            result.t2_value += 2;
+                            int row2_check = (row2 >> x) & 7;
+                            if (row2_check == 1 || row2_check == 4)
+                            {
+                                result.t2_value += 2;
+                            }
+                            finding2 = false;
+                        }
+                    }
+                }
+            }
+            for (int x = 0; finding3 && x < map.width - 3; ++x)
+            {
+                if (((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
+                {
+                    int t3_value = 0;
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        t3_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        {
+                            t3_value += 1;
+                            if (((row2 >> x) & 15) == 11)
+                            {
+                                t3_value += 2;
+                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                {
+                                    t3_value += 2;
+                                }
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if (row3_check == 8 || row3_check == 0)
+                            {
+                                t3_value += !!row3_check;
+                                int row4_check = ((row4 >> x) & 15);
+                                if (row4_check == 4 || row4_check == 12)
+                                {
+                                    t3_value += 1;
+                                }
+                                else
+                                {
+                                    t3_value -= 2;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
+                            }
+                        }
+                    }
+                    result.t3_value += t3_value;
+                    if (t3_value > 3)
+                    {
+                        finding3 = false;
+                    }
+                }
+                if (((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
+                {
+                    int t3_value = 0;
+                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    {
+                        t3_value += 1;
+                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        {
+                            t3_value += 1;
+                            if (((row2 >> x) & 15) == 13)
+                            {
+                                t3_value += 2;
+                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                {
+                                    t3_value += 2;
+                                }
+                            }
+                            int row3_check = ((row3 >> x) & 15);
+                            if (row3_check == 1 || row3_check == 0)
+                            {
+                                t3_value += !!row3_check;
+                                int row4_check = ((row4 >> x) & 15);
+                                if (row4_check == 3 || row4_check == 1)
+                                {
+                                    t3_value += 1;
+                                }
+                                else
+                                {
+                                    t3_value -= 2;
+                                }
+                            }
+                            else
+                            {
+                                t3_value = 0;
+                            }
+                        }
+                    }
+                    result.t3_value += t3_value;
+                    if (t3_value > 3)
+                    {
+                        finding3 = false;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    IO_v08::Status IO_v08::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
+    {
+
+
+        Status result = status;
+        if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if (eval_result.clear == 1 && node.is_mini_ready)
+            {
+                node.type = TSpinType::TSpinMini;
+            }
+            else if (node.is_ready)
+            {
+                node.type = TSpinType::TSpin;
+            }
+            else
+            {
+                node.type = TSpinType::None;
+            }
+        }
+        result.value = eval_result.value;
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
+                                         {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,  5,  5,  5,  5,  6},
+                                         {2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12} },
+
+            advattack[3][21] = { {2, 2, 3,  3,  4,  4,  5,  5,  6,  6,  7,  7,  8,  8,  9,  9, 10, 10, 11, 11, 12},
+                                {4, 5, 6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24},
+                                {6, 7, 9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36} },
+
+            b2blv1atk[3][21] = { {3, 3,  4,  5,  6,  6,  7,  8,  9,  9, 10, 11, 12, 12, 13, 14, 15, 15, 16, 17, 18},
+                                {5, 6,  7,  8, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28, 30},
+                                {7, 8, 10, 12, 14, 15, 17, 19, 21, 22, 24, 26, 28, 29, 31, 33, 35, 36, 38, 40, 42} },
+
+            b2blv2atk[3][21] = { {4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24},
+                                {6,  7,  9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36},
+                                {8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48} },
+
+            b2blv3atk[3][21] = { {5,  6,  7,  8, 10, 11, 12, 13, 15, 16, 17, 18, 20, 21, 22, 23, 25, 26, 27, 28, 30},
+                                {7,  8, 10, 12, 14, 15, 17, 19, 21, 22, 24, 26, 28, 29, 31, 33, 35, 36, 38, 40, 42},
+                                {9, 11, 13, 15, 18, 20, 22, 24, 27, 29, 31, 33, 36, 38, 40, 42, 45, 47, 49, 51, 54} },
+
+            b2blv4atk[3][21] = { { 6,  7,  9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36},
+                                { 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48},
+                                {10, 12, 15, 17, 20, 22, 25, 27, 30, 32, 35, 37, 40, 42, 45, 47, 50, 52, 55, 57, 60} };
+        if (safe <= 0)
+        {
+            result.value -= 99999;
+        }
+        switch (eval_result.clear)
+        {
+        case 0:
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                result.map_rise = status.under_attack > 8 ? 8 : status.under_attack;
+                if (result.map_rise > safe)
+                {
+                    result.death = 1;
+                }
+                result.under_attack = result.under_attack > 8 ? result.under_attack - 8 : 0;
+            }
+            break;
+        case 1:
+            if (node.type == TSpinType::TSpinMini)
+            {
+                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? normalatk[1][result.combo]
+                        : result.b2bcnt>3 && result.b2bcnt < 8 ? normalatk[2][result.combo]
+                        : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv1atk[0][result.combo]
+                        : result.b2bcnt > 23 ? advattack[1][result.combo]
+                        : 0;
+            }
+            else if (node.type == TSpinType::TSpin)
+            {
+                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
+                        : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
+                        : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
+                        : result.b2bcnt > 23 ? b2blv4atk[eval_result.clear - 1][result.combo]
+                        : advattack[0][result.combo];
+            }
+            else
+            {
+                result.attack += normalatk[0][result.combo];
+            }
+            ++result.combo; // combo included inside atk table
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 2:
+            if (node.type != TSpinType::None)
+            {
+                result.like += 8;
+                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
+                    : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
+                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
+                    : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
+                    : advattack[1][result.combo];
+            }
+            else
+            {
+                result.attack += normalatk[1][result.combo];
+            }
+            ++result.combo;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 3:
+            if (node.type != TSpinType::None)
+            {
+                result.like += 12;
+                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[2][result.combo]
+                    : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[2][result.combo]
+                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[2][result.combo]
+                    : result.b2bcnt > 23 ? b2blv4atk[2][result.combo]
+                    : advattack[2][result.combo];
+            }
+            else
+            {
+                result.attack += normalatk[eval_result.clear - 1][result.combo];
+            }
+            ++result.combo;
+            result.b2b = node.type != TSpinType::None;
+            break;
+        case 4:
+            result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
+                    : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
+                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
+                    : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
+                    : advattack[1][result.combo];
+            ++result.combo;
+            result.b2b = true;
+            break;
+        }
+        if (eval_result.count == 0 && result.map_rise == 0)
+        {
+            result.like += 999;
+            result.attack += 10;
+        }
+        result.like += result.attack;
+        size_t t_expect = [=]()->int
+        {
+            if (env.hold == 'T')
+            {
+                return 0;
+            }
+            for (size_t i = 0; i < env.length; ++i)
+            {
+                if (env.next[i] == 'T')
+                {
+                    return i;
+                }
+            }
+            return 13;
+        }();
+        switch (env.hold)
+        {
+        case 'T':
+            if (node.type == TSpinType::None)
+            {
+                result.like += 4;
+            }
+            break;
+        case 'I':
+            if (eval_result.clear != 4)
+            {
+                result.like += 2;
+            }
+            break;
+        }
+        double rate = (1. / (depth + 1)) + 3;
+        result.max_combo = std::max(result.combo, result.max_combo);
+        result.max_attack = std::max(result.attack, result.max_attack);
+        result.value += ((0.
+            + result.max_attack * 40
+            + (result.attack * 256 * rate) - result.board_fill
+            + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
+            + (safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
+            + (result.b2b ? 512 : 0)
+            + result.like * 64
+            ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
+            + result.max_combo * (result.max_combo - 1) * result.attack * 10
+            - result.death * 999999999.0
+            );
+        return result;
+    }
+
+    size_t IO_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
+    {
+        if (up >= 16)
+        {
+            return 1;
+        }
+        size_t height = 18 - up;
+        return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
+    }
+
     bool C2::Status::operator < (Status const &other) const
     {
         return value < other.value;

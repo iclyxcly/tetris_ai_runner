@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30413.136
+# Visual Studio Version 17
+VisualStudioVersion = 17.3.32901.215
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "tetris_ai_runner", "tetris_ai_runner.vcxproj", "{2EF25942-7BE9-41F8-B540-DAE8034BE8F7}"
 EndProject
@@ -14,6 +14,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "top_bot", "top_bot.vcxproj", "{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ppt_pso", "top_pso.vcxproj", "{301BCE5D-F7CD-4C88-B565-0290F70B0530}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zzztoj_iodll", "zzztoj_iodll.vcxproj", "{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +67,14 @@ Global
 		{301BCE5D-F7CD-4C88-B565-0290F70B0530}.Release|Win32.Build.0 = Release|Win32
 		{301BCE5D-F7CD-4C88-B565-0290F70B0530}.Release|x64.ActiveCfg = Release|x64
 		{301BCE5D-F7CD-4C88-B565-0290F70B0530}.Release|x64.Build.0 = Release|x64
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Debug|Win32.Build.0 = Debug|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Debug|x64.ActiveCfg = Debug|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Debug|x64.Build.0 = Debug|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Release|Win32.ActiveCfg = Release|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Release|Win32.Build.0 = Release|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Release|x64.ActiveCfg = Release|Win32
+		{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}.Release|x64.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

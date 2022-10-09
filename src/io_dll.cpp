@@ -69,12 +69,12 @@ canhold: false if hold is completely disabled.
 comboTable: -1 is the end of the table.
 */
 
+clock_t now = 0, avg = 0, pieces = 0, influency = 0;
 extern "C" void attach_init()
 {
     ege::mtsrand((unsigned int)(time(nullptr)));
 }
-
-extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, int pieces, int boardfill, int player)
+extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, bool isEnded, int boardfill, int player)
 {
     static char result_buffer[8][1024];
     char* result = result_buffer[player];
@@ -177,9 +177,12 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const* node = srs_ai.get(status);
-    static double const base_time = std::pow(100, 1.0 / 8);
-    printf("B2B: %d COMBO: %d\n", b2b, combo);
-    time_t f = (1000 / pps) - std::min((((pps * upcomeAtt + combo) / 17) * boardfill), (1000 / pps) / 2) - (boardfill / pps);
+    if (isEnded) pieces = 0, now = clock();
+    ++pieces, avg = (clock() - now) / pieces;
+    if (pieces > 10)pieces = 0, now = clock();
+    if (avg > 1000 / pps)influency -= 3;
+    else influency += 3;
+    time_t f = boardfill < 1 ? (1000 / pps) / 1.4 : ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // needs a rework
     if (canhold)
     {
 #if USE_PC

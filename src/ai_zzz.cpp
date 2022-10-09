@@ -54,13 +54,13 @@ namespace ai_zzz
     namespace qq
     {
 
-        bool Attack::Status::operator < (Status const &other) const
+        bool Attack::Status::operator < (Status const& other) const
         {
             return value < other.value;
         }
 
 
-        void Attack::init(m_tetris::TetrisContext const *context, Config const *config)
+        void Attack::init(m_tetris::TetrisContext const* context, Config const* config)
         {
             context_ = context;
             config_ = config;
@@ -81,7 +81,7 @@ namespace ai_zzz
             for (size_t i = 0; i < context->type_max(); ++i)
             {
                 TetrisMap map(context->width(), context->height());
-                TetrisNode const *node = context->generate(i);
+                TetrisNode const* node = context->generate(i);
                 node->attach(context, map);
                 std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
                 for (int y = 0; y < 3; ++y)
@@ -98,7 +98,7 @@ namespace ai_zzz
             return "AX Attack v0.1";
         }
 
-        Attack::Result Attack::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+        Attack::Result Attack::eval(TetrisNode const* node, TetrisMap const& map, TetrisMap const& src_map, size_t clear) const
         {
             double LandHeight = node->row + node->height;
             double Middle = std::fabs((node->status.x + 1) * 2 - map.width);
@@ -241,9 +241,9 @@ namespace ai_zzz
             int low_y = map.top[low_x];
             for (int y = map.roof - 1; y >= low_y; --y)
             {
-                if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                if (std::binary_search<uint32_t const*>(check_line_1_, check_line_1_end_, map.row[y]))
                 {
-                    if (y + 1 < map.height && std::binary_search<uint32_t const *>(check_line_2_, check_line_2_end_, map.row[y + 1]))
+                    if (y + 1 < map.height && std::binary_search<uint32_t const*>(check_line_2_, check_line_2_end_, map.row[y + 1]))
                     {
                         v.AttackDepth += 20;
                     }
@@ -253,7 +253,7 @@ namespace ai_zzz
                     }
                     for (--y; y >= low_y; --y)
                     {
-                        if (std::binary_search<uint32_t const *>(check_line_1_, check_line_1_end_, map.row[y]))
+                        if (std::binary_search<uint32_t const*>(check_line_1_, check_line_1_end_, map.row[y]))
                         {
                             v.AttackDepth += 3;
                         }
@@ -298,7 +298,7 @@ namespace ai_zzz
             return result;
         }
 
-        Attack::Status Attack::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status) const
+        Attack::Status Attack::get(m_tetris::TetrisNode const* node, Result const& eval_result, size_t depth, Status const& status) const
         {
 
             Status result = status;
@@ -331,7 +331,7 @@ namespace ai_zzz
             return result;
         }
 
-        size_t Attack::map_in_danger_(m_tetris::TetrisMap const &map) const
+        size_t Attack::map_in_danger_(m_tetris::TetrisMap const& map) const
         {
             size_t danger = 0;
             for (size_t i = 0; i < context_->type_max(); ++i)
@@ -345,14 +345,14 @@ namespace ai_zzz
         }
     }
 
-    void Dig::init(m_tetris::TetrisContext const *context, Config const *config)
+    void Dig::init(m_tetris::TetrisContext const* context, Config const* config)
     {
         context_ = context;
         map_danger_data_.resize(context->type_max());
         for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
-            TetrisNode const *node = context->generate(i);
+            TetrisNode const* node = context->generate(i);
             node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
@@ -370,7 +370,7 @@ namespace ai_zzz
         return "ZZZ Dig v0.2";
     }
 
-    double Dig::eval(m_tetris::TetrisNode const *node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    double Dig::eval(m_tetris::TetrisNode const* node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
@@ -467,13 +467,13 @@ namespace ai_zzz
         size_t BoardDeadZone = map_in_danger_(map);
 
         double value = (0.
-            - (map.roof      + config_->p[ 6]) * config_->p[ 7]
-            - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
-            - (RowTrans      + config_->p[10]) * config_->p[11]
-            - (v.HoleCount   + config_->p[12]) * config_->p[13]
-            - (v.HoleLine    + config_->p[14]) * config_->p[15]
-            - (v.WellDepth   + config_->p[16]) * config_->p[17]
-            - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+            - (map.roof + config_->p[6]) * config_->p[7]
+            - (ColTrans + config_->p[8]) * config_->p[9]
+            - (RowTrans + config_->p[10]) * config_->p[11]
+            - (v.HoleCount + config_->p[12]) * config_->p[13]
+            - (v.HoleLine + config_->p[14]) * config_->p[15]
+            - (v.WellDepth + config_->p[16]) * config_->p[17]
+            - (v.HoleDepth + config_->p[18]) * config_->p[19]
             - (BoardDeadZone + config_->p[20]) * config_->p[21]
             );
         double rate = config_->p[22], mul = config_->p[23];
@@ -484,12 +484,12 @@ namespace ai_zzz
         return value;
     }
 
-    double Dig::get(m_tetris::TetrisNode const *node, double const &eval_result) const
+    double Dig::get(m_tetris::TetrisNode const* node, double const& eval_result) const
     {
         return eval_result;
     }
 
-    size_t Dig::map_in_danger_(m_tetris::TetrisMap const &map) const
+    size_t Dig::map_in_danger_(m_tetris::TetrisMap const& map) const
     {
         size_t danger = 0;
         for (size_t i = 0; i < context_->type_max(); ++i)
@@ -502,12 +502,12 @@ namespace ai_zzz
         return danger;
     }
 
-    bool TOJ::Status::operator < (Status const &other) const
+    bool TOJ::Status::operator < (Status const& other) const
     {
         return value < other.value;
     }
 
-    int8_t TOJ::get_safe(m_tetris::TetrisMap const &m, char t) const {
+    int8_t TOJ::get_safe(m_tetris::TetrisMap const& m, char t) const {
         int safe = 0;
         while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
         {
@@ -516,7 +516,7 @@ namespace ai_zzz
         return safe;
     }
 
-    void TOJ::init(m_tetris::TetrisContext const *context, Config const *config)
+    void TOJ::init(m_tetris::TetrisContext const* context, Config const* config)
     {
         context_ = context;
         config_ = config;
@@ -526,7 +526,7 @@ namespace ai_zzz
         for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
-            TetrisNode const *node = context->generate(i);
+            TetrisNode const* node = context->generate(i);
             node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
@@ -541,7 +541,7 @@ namespace ai_zzz
         return "ZZZ TOJ v0.12";
     }
 
-    void TOJ::Status::init_t_value(TetrisMap const &map, int16_t &t2_value_ref, int16_t &t3_value_ref, TetrisMap *out_map)
+    void TOJ::Status::init_t_value(TetrisMap const& map, int16_t& t2_value_ref, int16_t& t3_value_ref, TetrisMap* out_map)
     {
         int row_bit_count_global[40];
         for (int y = 0; y < map.roof; ++y)
@@ -561,7 +561,7 @@ namespace ai_zzz
             int row4 = map.row[y + 4];
             int row5 = map.row[y + 5];
             int row6 = map.row[y + 6];
-            int *row_bit_count = row_bit_count_global + y;
+            int* row_bit_count = row_bit_count_global + y;
             for (int x = 1, ex = map.width - 2; x < ex; ++x)
             {
                 if (((~row0 >> x) & 1) & (((~row1 >> x) & 3) == 3) & ((~row2 >> x) & 1) & !((row3 >> x) & 7) & (((~row4 >> x) & 6) == 6))
@@ -725,7 +725,7 @@ namespace ai_zzz
         }
     };
 
-    TOJ::Result TOJ::eval(TetrisNodeEx const &node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    TOJ::Result TOJ::eval(TetrisNodeEx const& node, TetrisMap const& map, TetrisMap const& src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
 
@@ -783,7 +783,7 @@ namespace ai_zzz
                 ++v.Wide[WideCount];
             }
         }
-        int side_roof = std::max({map.top[0], map.top[1], map.top[2], map.top[width_m1], map.top[width_m1 - 1], map.top[width_m1 - 2]});
+        int side_roof = std::max({ map.top[0], map.top[1], map.top[2], map.top[width_m1], map.top[width_m1 - 1], map.top[width_m1 - 2] });
         auto& p = config_->param;
         result.value = (0.
             - side_roof * p.roof
@@ -803,7 +803,7 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ::Status TOJ::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    TOJ::Status TOJ::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
     {
         if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
         {
@@ -834,7 +834,7 @@ namespace ai_zzz
         {
             v > 0 ? like += v : dislike -= v;
         };
-        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map,  *env.next) : eval_result.map->roof;
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         auto& p = config_->param;
         switch (eval_result.clear)
         {
@@ -1003,7 +1003,7 @@ namespace ai_zzz
         return result;
     }
 
-    size_t TOJ::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
+    size_t TOJ::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
         if (up >= 20)
         {
@@ -1013,7 +1013,7 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
-    bool TOJ_PC::Status::operator < (Status const &other) const
+    bool TOJ_PC::Status::operator < (Status const& other) const
     {
         return value < other.value;
     }
@@ -1023,14 +1023,14 @@ namespace ai_zzz
         return "ZZZ TOJ_PC v0.1";
     }
 
-    void TOJ_PC::init(m_tetris::TetrisContext const *context, Config const *config) {
+    void TOJ_PC::init(m_tetris::TetrisContext const* context, Config const* config) {
         context_ = context;
         config_ = config;
         col_mask_ = context->full() & ~1;
         row_mask_ = context->full();
     }
 
-    TOJ_PC::Result TOJ_PC::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &, size_t clear) const
+    TOJ_PC::Result TOJ_PC::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const&, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
@@ -1061,7 +1061,7 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ_PC::Status TOJ_PC::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const & status) const {
+    TOJ_PC::Status TOJ_PC::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status) const {
 
         Status result = status;
         if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
@@ -1134,12 +1134,12 @@ namespace ai_zzz
         return result;
     }
 
-    bool TOJ_v08::Status::operator < (Status const &other) const
+    bool TOJ_v08::Status::operator < (Status const& other) const
     {
         return value < other.value;
     }
 
-    int8_t TOJ_v08::get_safe(m_tetris::TetrisMap const &m, char t) const {
+    int8_t TOJ_v08::get_safe(m_tetris::TetrisMap const& m, char t) const {
         int safe = 0;
         while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
         {
@@ -1148,7 +1148,7 @@ namespace ai_zzz
         return safe;
     }
 
-    void TOJ_v08::init(m_tetris::TetrisContext const *context, Config const *config)
+    void TOJ_v08::init(m_tetris::TetrisContext const* context, Config const* config)
     {
         context_ = context;
         config_ = config;
@@ -1159,7 +1159,7 @@ namespace ai_zzz
         for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
-            TetrisNode const *node = context->generate(i);
+            TetrisNode const* node = context->generate(i);
             node->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
@@ -1174,7 +1174,7 @@ namespace ai_zzz
         return "ZZZ TOJ v0.8";
     }
 
-    TOJ_v08::Result TOJ_v08::eval(TetrisNodeEx const &node, m_tetris::TetrisMap const &map, m_tetris::TetrisMap const &src_map, size_t clear) const
+    TOJ_v08::Result TOJ_v08::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         int ColTrans = 2 * (map.height - map.roof);
@@ -1419,7 +1419,7 @@ namespace ai_zzz
         return result;
     }
 
-    TOJ_v08::Status TOJ_v08::get(TetrisNodeEx &node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    TOJ_v08::Status TOJ_v08::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
     {
         Status result = status;
         if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
@@ -1556,7 +1556,7 @@ namespace ai_zzz
         return result;
     }
 
-    size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
+    size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
         if (up >= 20)
         {
@@ -1918,18 +1918,18 @@ namespace ai_zzz
             if (node.type == TSpinType::TSpinMini)
             {
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? normalatk[1][result.combo]
-                        : result.b2bcnt>3 && result.b2bcnt < 8 ? normalatk[2][result.combo]
-                        : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv1atk[0][result.combo]
-                        : result.b2bcnt > 23 ? advattack[1][result.combo]
-                        : 0;
+                    : result.b2bcnt>3 && result.b2bcnt < 8 ? normalatk[2][result.combo]
+                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv1atk[0][result.combo]
+                    : result.b2bcnt > 23 ? advattack[1][result.combo]
+                    : 0;
             }
             else if (node.type == TSpinType::TSpin)
             {
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
-                        : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
-                        : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
-                        : result.b2bcnt > 23 ? b2blv4atk[eval_result.clear - 1][result.combo]
-                        : advattack[0][result.combo];
+                    : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
+                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
+                    : result.b2bcnt > 23 ? b2blv4atk[eval_result.clear - 1][result.combo]
+                    : advattack[0][result.combo];
             }
             else
             {
@@ -1974,10 +1974,11 @@ namespace ai_zzz
             break;
         case 4:
             result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
-                    : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
-                    : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
-                    : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
-                    : advattack[1][result.combo];
+                : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
+                : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
+                : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
+                : advattack[1][result.combo];
+            result.like += result.combo * result.attack;
             ++result.combo;
             result.b2b = true;
             break;
@@ -2029,7 +2030,7 @@ namespace ai_zzz
             + (result.b2b ? 512 : 0)
             + result.like * 64
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-            + result.max_combo * (result.max_combo - 1) * result.attack * 10
+            + result.max_combo * (result.max_combo - 1) * result.attack * (result.board_fill / 10)
             - result.death * 999999999.0
             );
         return result;
@@ -2045,13 +2046,13 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
-    bool C2::Status::operator < (Status const &other) const
+    bool C2::Status::operator < (Status const& other) const
     {
         return value < other.value;
     }
 
 
-    void C2::init(m_tetris::TetrisContext const *context, Config const *config)
+    void C2::init(m_tetris::TetrisContext const* context, Config const* config)
     {
         context_ = context;
         config_ = config;
@@ -2059,7 +2060,7 @@ namespace ai_zzz
         for (size_t i = 0; i < context->type_max(); ++i)
         {
             TetrisMap map(context->width(), context->height());
-            TetrisNode const *node = context->generate(i);
+            TetrisNode const* node = context->generate(i);
             node->move_down->attach(context, map);
             std::memcpy(map_danger_data_[i].data, &map.row[map.height - 4], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
@@ -2076,7 +2077,7 @@ namespace ai_zzz
         return "C2 v0.1";
     }
 
-    C2::Result C2::eval(TetrisNode const *node, TetrisMap const &map, TetrisMap const &src_map, size_t clear) const
+    C2::Result C2::eval(TetrisNode const* node, TetrisMap const& map, TetrisMap const& src_map, size_t clear) const
     {
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
@@ -2220,13 +2221,13 @@ namespace ai_zzz
 
         Result result;
         result.map = (0.
-            - (map.roof      + config_->p[ 6]) * config_->p[ 7]
-            - (ColTrans      + config_->p[ 8]) * config_->p[ 9]
-            - (RowTrans      + config_->p[10]) * config_->p[11]
-            - (v.HoleCount   + config_->p[12]) * config_->p[13]
-            - (v.HoleLine    + config_->p[14]) * config_->p[15]
-            - (v.WellDepth   + config_->p[16]) * config_->p[17]
-            - (v.HoleDepth   + config_->p[18]) * config_->p[19]
+            - (map.roof + config_->p[6]) * config_->p[7]
+            - (ColTrans + config_->p[8]) * config_->p[9]
+            - (RowTrans + config_->p[10]) * config_->p[11]
+            - (v.HoleCount + config_->p[12]) * config_->p[13]
+            - (v.HoleLine + config_->p[14]) * config_->p[15]
+            - (v.WellDepth + config_->p[16]) * config_->p[17]
+            - (v.HoleDepth + config_->p[18]) * config_->p[19]
             - (BoardDeadZone + config_->p[20]) * config_->p[21]
             );
         double rate = config_->p[22], mul = config_->p[23];
@@ -2255,7 +2256,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::get(m_tetris::TetrisNode const *node, Result const &eval_result, size_t depth, Status const &status, TetrisContext::Env const &env) const
+    C2::Status C2::get(m_tetris::TetrisNode const* node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
     {
         Status result;
         result.attack = 0;
@@ -2357,7 +2358,7 @@ namespace ai_zzz
         return result;
     }
 
-    C2::Status C2::iterate(Status const **status, size_t status_length) const
+    C2::Status C2::iterate(Status const** status, size_t status_length) const
     {
         Status result;
         result.combo = 0;
@@ -2435,7 +2436,7 @@ namespace ai_zzz
         return result;
     }
 
-    size_t C2::map_in_danger_(m_tetris::TetrisMap const &map) const
+    size_t C2::map_in_danger_(m_tetris::TetrisMap const& map) const
     {
         size_t danger = 0;
         for (size_t i = 0; i < context_->type_max(); ++i)

@@ -116,7 +116,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
     srs_ai.search_config()->allow_LR = false;
-    srs_ai.search_config()->allow_d = false;
+    srs_ai.search_config()->allow_d = true; // bot will directly harddrop instead of avoiding situation that requires d so i will just put true
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
 #if USE_PC
@@ -179,10 +179,10 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     m_tetris::TetrisNode const* node = srs_ai.get(status);
     if (isEnded) pieces = 0, now = clock();
     ++pieces, avg = (clock() - now) / pieces;
-    if (pieces > 10)pieces = 0, now = clock();
+    if (pieces > 7)pieces = 0, now = clock();
     if (avg > 1000 / pps)influency -= 3;
     else influency += 3;
-    time_t f = boardfill < 1 ? (1000 / pps) / 1.4 : ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // needs a rework
+    time_t f = ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // not 100% accurate pps, might need rework
     if (canhold)
     {
 #if USE_PC

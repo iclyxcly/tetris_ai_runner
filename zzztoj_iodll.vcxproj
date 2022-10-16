@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dll_setting.h" />
+    <ClInclude Include="src\dll_setting.h" />
     <ClInclude Include="src\chash.h" />
     <ClInclude Include="src\chash_map.h" />
     <ClInclude Include="src\chash_set.h" />

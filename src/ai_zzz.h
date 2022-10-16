@@ -194,10 +194,40 @@ namespace ai_zzz
     public:
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        struct Param {
+            double roof = 128;
+            double col_trans = 160;
+            double row_trans = 160;
+            double hole_count = 80;
+            double hole_line = 380;
+            double well_depth = 100;
+            double hole_depth = 40;
+            double safe = 0;
+            double b2b = 128;
+            double attack = 1;
+            double hold_t = 4;
+            double hold_i = 2;
+            double waste_t = 0;
+            double waste_i = 0;
+            double clear_1 = 0;
+            double clear_2 = 0;
+            double clear_3 = 0;
+            double clear_4 = 1;
+            double t2_slot = 1.5;
+            double t3_slot = 1;
+            double tspin_mini = 0;
+            double tspin_1 = 0;
+            double tspin_2 = 8;
+            double tspin_3 = 12;
+            double decision = 6; // lower=b2b, higher=combo
+            double combo = 30;
+            double ratio = 1.5;
+        };
         struct Config
         {
             int const* table;
             int table_max;
+            Param param;
         };
         struct Result
         {
@@ -229,7 +259,7 @@ namespace ai_zzz
         std::string ai_name() const;
         double ratio() const
         {
-            return 1.5;
+            return config_->param.ratio;
         }
         Result eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const;
         Status get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, m_tetris::TetrisContext::Env const& env) const;

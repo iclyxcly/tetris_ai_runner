@@ -156,6 +156,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
     srs_ai.memory_limit(1024ull << 20);
+    srs_ai.ai_config()->param = { 128, 160, 160, 80, 380, 100, 40, 0, 128, 1, 4, 2, 0, 0, 0, 0, 0, 1, 1.5, 1, 0, 0, 8, 12, 6, 30, 1.5 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;

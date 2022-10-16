@@ -30,6 +30,7 @@
     <ClInclude Include="..\tetris_ai_runner\src\sb_tree.h" />
     <ClInclude Include="..\tetris_ai_runner\src\search_tspin.h" />
     <ClInclude Include="..\tetris_ai_runner\src\tetris_core.h" />
+	  <ClInclude Include="..\tetris_ai_runner\src\dll_setting.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\tetris_ai_runner\src\chash.natvis" />
@@ -41,13 +42,13 @@
     <ClCompile Include="..\tetris_ai_runner\src\rule_srs.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\search_tspin.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\tetris_core.cpp" />
-    <ClCompile Include="src\ppt_pso.cpp" />
+    <ClCompile Include="src\io_pso.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{301BCE5D-F7CD-4C88-B565-0290F70B0530}</ProjectGuid>
     <RootNamespace>AI</RootNamespace>
     <Keyword>Win32Proj</Keyword>
-    <ProjectName>ppt_pso</ProjectName>
+    <ProjectName>io_pso</ProjectName>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

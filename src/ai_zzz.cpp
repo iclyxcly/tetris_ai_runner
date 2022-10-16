@@ -1709,16 +1709,16 @@ namespace ai_zzz
                 v.WellDepth += ++v.WellNum[width_m1];
             }
         }
-
+        auto& p = config_->param;
         Result result;
         result.value = (0.
-            - map.roof * 128
-            - ColTrans * 160
-            - RowTrans * 160
-            - v.HoleCount * 80
-            - v.HoleLine * 380
-            - v.WellDepth * 100
-            - v.HoleDepth * 40
+            - map.roof * p.roof
+            - ColTrans * p.col_trans
+            - RowTrans * p.row_trans
+            - v.HoleCount * p.hole_count
+            - v.HoleLine * p.hole_line
+            - v.WellDepth * p.well_depth
+            - v.HoleDepth * p.hole_depth
             );
         double rate = 32, mul = 1.0 / 4;
         for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
@@ -1876,6 +1876,7 @@ namespace ai_zzz
         result.board_fill = eval_result.count;
 #endif
         result.value = eval_result.value;
+        auto& p = config_->param;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
                                          {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,  5,  5,  5,  5,  6},
@@ -1902,7 +1903,7 @@ namespace ai_zzz
                                 {10, 12, 15, 17, 20, 22, 25, 27, 30, 32, 35, 37, 40, 42, 45, 47, 50, 52, 55, 57, 60} };
         if (safe <= 0)
         {
-            result.value -= 99999;
+            result.death = 1;
         }
         switch (eval_result.clear)
         {
@@ -1917,12 +1918,15 @@ namespace ai_zzz
                 {
                     result.death = 1;
                 }
+                result.like += (node->status.t == 'I') * p.waste_i;
+                result.like += (node->status.t == 'T') * p.waste_t;
                 result.under_attack = result.under_attack > 8 ? result.under_attack - 8 : 0;
             }
             break;
         case 1:
             if (node.type == TSpinType::TSpinMini)
             {
+                result.like += p.tspin_mini;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? normalatk[1][result.combo]
                     : result.b2bcnt>3 && result.b2bcnt < 8 ? normalatk[2][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv1atk[0][result.combo]
@@ -1932,6 +1936,7 @@ namespace ai_zzz
             }
             else if (node.type == TSpinType::TSpin)
             {
+                result.like += p.tspin_1;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
@@ -1941,6 +1946,9 @@ namespace ai_zzz
             }
             else
             {
+                result.like += (node->status.t == 'I') * p.waste_i;
+                result.like += (node->status.t == 'T') * p.waste_t;
+                result.like += p.clear_1;
                 result.attack += normalatk[0][result.combo];
                 result.b2bcnt = 0;
             }
@@ -1950,7 +1958,7 @@ namespace ai_zzz
         case 2:
             if (node.type != TSpinType::None)
             {
-                result.like += 8;
+                result.like += p.tspin_2;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
@@ -1960,6 +1968,7 @@ namespace ai_zzz
             }
             else
             {
+                result.like += p.clear_2;
                 result.attack += normalatk[1][result.combo];
                 result.b2bcnt = 0;
             }
@@ -1969,7 +1978,7 @@ namespace ai_zzz
         case 3:
             if (node.type != TSpinType::None)
             {
-                result.like += 12;
+                result.like += p.tspin_3;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[2][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[2][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[2][result.combo]
@@ -1979,6 +1988,7 @@ namespace ai_zzz
             }
             else
             {
+                result.like += p.clear_3;
                 result.attack += normalatk[eval_result.clear - 1][result.combo];
                 result.b2bcnt = 0;
             }
@@ -1991,7 +2001,7 @@ namespace ai_zzz
                 : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
                 : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
                 : advattack[1][result.combo];
-            result.like += result.combo + result.attack + result.b2bcnt;
+            result.like += (result.combo + result.attack + result.b2bcnt) * p.clear_4;
             ++result.b2bcnt;
             ++result.combo;
             result.b2b = true;
@@ -2023,13 +2033,13 @@ namespace ai_zzz
         case 'T':
             if (node.type == TSpinType::None)
             {
-                result.like += 4;
+                result.like += p.hold_t;
             }
             break;
         case 'I':
             if (eval_result.clear != 4)
             {
-                result.like += 2;
+                result.like += p.hold_i;
             }
             break;
         }
@@ -2038,13 +2048,14 @@ namespace ai_zzz
         double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
-            + ((result.attack * 256 * rate)
-                + eval_result.t2_value * (t_expect < 4 ? 512 : 320) * 1.5
-                + (safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
-                + (result.b2b * 128)
-                + result.like * 32) - (result.board_fill * (6 + result.under_attack))
+            + (((result.attack * 256 * rate) * p.attack)
+                + eval_result.t2_value * (t_expect < 4 ? 512 : 320) * p.t2_slot
+                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
+                + (result.b2b * p.b2b)
+                + result.like * 32
+                ) - (result.board_fill * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-            + (result.max_combo * (result.max_combo - 1) * 30) + result.attack
+            + (result.max_combo * (result.max_combo - 1) * p.combo) + result.attack
             - result.death * 999999999.0
             );
         return result;

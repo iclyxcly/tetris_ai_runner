@@ -13,6 +13,7 @@
 #include "ai_zzz.h"
 #include "rule_toj.h"
 #include "random.h"
+#include "dll_setting.h"
 
 /*
  ***********************************************************************************************
@@ -35,9 +36,6 @@
  * �����ļ�(ai.cpp)�ӹ����ų�,����demo.cpp�����Ϳ�����.���ֱ��ʹ�ñ�׼��ST����...�ᷢ��δ�������Ϊ!
  ***********************************************************************************************
  */
-
-#define USE_THREAD 1
-#define USE_PC 0
 
 #if USE_THREAD
 m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
@@ -74,7 +72,22 @@ extern "C" void attach_init()
 {
     ege::mtsrand((unsigned int)(time(nullptr)));
 }
+#if USE_MISAMINO
+extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
+{
+    return 2;
+}
+
+extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
+{
+    static char name[200];
+    strcpy(name, srs_ai.ai_name().c_str());
+    return name;
+}
+extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
+#else
 extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, bool isEnded, int boardfill, int player)
+#endif
 {
     static char result_buffer[8][1024];
     char* result = result_buffer[player];
@@ -144,7 +157,6 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
 #endif
     srs_ai.memory_limit(1024ull << 20);
     srs_ai.status()->max_combo = 0;
-    srs_ai.status()->max_attack = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
@@ -156,7 +168,9 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
     srs_ai.status()->b2bcnt = b2b;
+#if !USE_MISAMINO
     srs_ai.status()->board_fill = boardfill;
+#endif
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
 #if USE_PC
@@ -177,12 +191,16 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const* node = srs_ai.get(status);
+#if !USE_MISAMINO
     if (isEnded) pieces = 0, now = clock();
     ++pieces, avg = (clock() - now) / pieces;
     if (pieces > 7)pieces = 0, now = clock();
     if (avg > 1000 / pps)influency -= 3;
     else influency += 3;
     time_t f = ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // not 100% accurate pps, might need rework
+#else
+    time_t f = std::pow(std::pow(100, 1.0 / 8), level);
+#endif
     if (canhold)
     {
 #if USE_PC

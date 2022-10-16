@@ -4,6 +4,7 @@
 #include "tetris_core.h"
 #include "integer_utils.h"
 #include "ai_zzz.h"
+#include "dll_setting.h"
 #include <cstdint>
 
 using namespace m_tetris;
@@ -1871,6 +1872,9 @@ namespace ai_zzz
                 node.type = TSpinType::None;
             }
         }
+#if USE_MISAMINO
+        result.board_fill = eval_result.count;
+#endif
         result.value = eval_result.value;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
@@ -1946,7 +1950,7 @@ namespace ai_zzz
         case 2:
             if (node.type != TSpinType::None)
             {
-                result.like += 16;
+                result.like += 8;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
@@ -1965,7 +1969,7 @@ namespace ai_zzz
         case 3:
             if (node.type != TSpinType::None)
             {
-                result.like += 32;
+                result.like += 12;
                 result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[2][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[2][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[2][result.combo]
@@ -1987,8 +1991,8 @@ namespace ai_zzz
                 : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
                 : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
                 : advattack[1][result.combo];
+            result.like += result.combo + result.attack + result.b2bcnt;
             ++result.b2bcnt;
-            result.like += result.combo * result.attack * std::max(1, result.b2bcnt);
             ++result.combo;
             result.b2b = true;
             break;
@@ -1999,7 +2003,6 @@ namespace ai_zzz
             result.like += 999;
             result.attack += 10;
         }
-        result.like += result.attack;
         size_t t_expect = [=]()->int
         {
             if (env.hold == 'T')
@@ -2030,19 +2033,18 @@ namespace ai_zzz
             }
             break;
         }
+        result.like += result.attack;
         result.under_attack = std::max(0, result.under_attack - result.attack);
         double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
-        result.max_attack = std::max(result.attack, result.max_attack);
         result.value += ((0.
-            + result.max_attack * 40
-            + (result.attack * 256 * rate) - result.board_fill
-            + eval_result.t2_value * (t_expect < 8 ? 512 : 320) * 1.5
-            + (safe >= 12 ? eval_result.t3_value * (t_expect < 4 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
-            + (result.b2bcnt * 256)
-            + result.like * 64 
+            + ((result.attack * 256 * rate)
+                + eval_result.t2_value * (t_expect < 4 ? 512 : 320) * 1.5
+                + (safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0)
+                + (result.b2b * 128)
+                + result.like * 32) - (result.board_fill * (6 + result.under_attack))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-            + result.max_combo * (result.max_combo - 1) * result.attack * (result.board_fill / 10)
+            + (result.max_combo * (result.max_combo - 1) * 30) + result.attack
             - result.death * 999999999.0
             );
         return result;

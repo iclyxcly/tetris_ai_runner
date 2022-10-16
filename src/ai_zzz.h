@@ -211,7 +211,6 @@ namespace ai_zzz
         struct Status
         {
             int max_combo;
-            int max_attack;
             int death;
             int combo;
             int attack;

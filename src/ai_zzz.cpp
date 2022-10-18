@@ -4,7 +4,7 @@
 #include "tetris_core.h"
 #include "integer_utils.h"
 #include "ai_zzz.h"
-#include "dll_setting.h"
+#include "ai_setting.h"
 #include <cstdint>
 
 using namespace m_tetris;
@@ -1878,6 +1878,7 @@ namespace ai_zzz
         result.value = eval_result.value;
         auto& p = config_->param;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        int curAtk = 0;
         int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
                                          {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,  5,  5,  5,  5,  6},
                                          {2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12} },
@@ -1927,7 +1928,7 @@ namespace ai_zzz
             if (node.type == TSpinType::TSpinMini)
             {
                 result.like += p.tspin_mini;
-                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? normalatk[1][result.combo]
+                result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? normalatk[1][result.combo]
                     : result.b2bcnt>3 && result.b2bcnt < 8 ? normalatk[2][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv1atk[0][result.combo]
                     : result.b2bcnt > 23 ? advattack[1][result.combo]
@@ -1937,7 +1938,7 @@ namespace ai_zzz
             else if (node.type == TSpinType::TSpin)
             {
                 result.like += p.tspin_1;
-                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
+                result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
                     : result.b2bcnt > 23 ? b2blv4atk[eval_result.clear - 1][result.combo]
@@ -1949,7 +1950,7 @@ namespace ai_zzz
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
                 result.like += p.clear_1;
-                result.attack += normalatk[0][result.combo];
+                result.attack += curAtk = normalatk[0][result.combo];
                 result.b2bcnt = 0;
             }
             ++result.combo; // combo included inside atk table
@@ -1959,7 +1960,7 @@ namespace ai_zzz
             if (node.type != TSpinType::None)
             {
                 result.like += p.tspin_2;
-                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
+                result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
                     : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
@@ -1969,7 +1970,7 @@ namespace ai_zzz
             else
             {
                 result.like += p.clear_2;
-                result.attack += normalatk[1][result.combo];
+                result.attack += curAtk = normalatk[1][result.combo];
                 result.b2bcnt = 0;
             }
             ++result.combo;
@@ -1979,7 +1980,7 @@ namespace ai_zzz
             if (node.type != TSpinType::None)
             {
                 result.like += p.tspin_3;
-                result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[2][result.combo]
+                result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[2][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[2][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[2][result.combo]
                     : result.b2bcnt > 23 ? b2blv4atk[2][result.combo]
@@ -1989,14 +1990,14 @@ namespace ai_zzz
             else
             {
                 result.like += p.clear_3;
-                result.attack += normalatk[eval_result.clear - 1][result.combo];
+                result.attack += curAtk = normalatk[eval_result.clear - 1][result.combo];
                 result.b2bcnt = 0;
             }
             ++result.combo;
             result.b2b = node.type != TSpinType::None;
             break;
         case 4:
-            result.attack += result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
+            result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
                 : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[1][result.combo]
                 : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
                 : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
@@ -2013,6 +2014,8 @@ namespace ai_zzz
             result.like += 999;
             result.attack += 10;
         }
+        if (result.is_margin)
+            result.attack += (int)std::floor((((clock() - result.start_count) / 1000.0) * GARBAGE_INCREASE) * curAtk);
         size_t t_expect = [=]()->int
         {
             if (env.hold == 'T')

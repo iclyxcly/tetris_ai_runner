@@ -13,7 +13,7 @@
 #include "ai_zzz.h"
 #include "rule_toj.h"
 #include "random.h"
-#include "dll_setting.h"
+#include "ai_setting.h"
 
 /*
  ***********************************************************************************************
@@ -67,7 +67,7 @@ canhold: false if hold is completely disabled.
 comboTable: -1 is the end of the table.
 */
 
-clock_t now = 0, avg = 0, pieces = 0, influency = 0;
+clock_t now = 0, avg = 0, pieces = 0, influency = 0, start_count = 0, elapsed_time = 0, init_time = 0, a = 0;
 extern "C" void attach_init()
 {
     ege::mtsrand((unsigned int)(time(nullptr)));
@@ -128,8 +128,6 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
-    srs_ai.search_config()->allow_LR = false;
-    srs_ai.search_config()->allow_d = true; // bot will directly harddrop instead of avoiding situation that requires d so i will just put true
     srs_ai.search_config()->is_20g = false;
     srs_ai.search_config()->last_rotate = false;
 #if USE_PC
@@ -156,9 +154,10 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
     srs_ai.memory_limit(1024ull << 20);
-    srs_ai.ai_config()->param = { 128, 160, 160, 80, 380, 100, 40, 0, 128, 1, 4, 2, 0, 0, 0, 0, 0, 1, 1.5, 1, 0, 0, 8, 12, 6, 30, 1.5 };
+    srs_ai.ai_config()->param = { 132.477715082, 161.356292696, 160.839063447, 78.038303004, 379.902673860, 105.029800052, 36.739990149, 0.841482980, 129.145430052, 1.192216850, 3.799560764, 2.682972802, 0.237238691, -0.342838285, -3.612567214, 0.302979758, -2.262920731, 1.242009716, 1.547904495, 0.813506085, -0.503370560, 0.353190440, 8.073365442, 11.374001660, 6.105355008, 29.113963562, 1.454244994 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
+    srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
     if (srs_ai.status()->under_attack != upcomeAtt)
@@ -193,11 +192,21 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const* node = srs_ai.get(status);
 #if !USE_MISAMINO
-    if (isEnded) pieces = 0, now = clock();
+    if (isEnded) pieces = 0, now = clock(), a = 0, init_time = clock();
+    elapsed_time = clock() - init_time;
     ++pieces, avg = (clock() - now) / pieces;
     if (pieces > 7)pieces = 0, now = clock();
     if (avg > 1000 / pps)influency -= 3;
     else influency += 3;
+    if (a == 0)
+    {
+        if (elapsed_time > GARBAGE_MARGIN_TIME) 
+        {
+            srs_ai.status()->is_margin = true;
+            srs_ai.status()->start_count = clock();
+            a = 1;
+        }
+    }
     time_t f = ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // not 100% accurate pps, might need rework
 #else
     time_t f = std::pow(std::pow(100, 1.0 / 8), level);

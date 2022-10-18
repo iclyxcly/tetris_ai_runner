@@ -30,7 +30,7 @@
     <ClInclude Include="..\tetris_ai_runner\src\sb_tree.h" />
     <ClInclude Include="..\tetris_ai_runner\src\search_tspin.h" />
     <ClInclude Include="..\tetris_ai_runner\src\tetris_core.h" />
-	  <ClInclude Include="..\tetris_ai_runner\src\dll_setting.h" />
+    <ClInclude Include="src\ai_setting.h" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="..\tetris_ai_runner\src\chash.natvis" />

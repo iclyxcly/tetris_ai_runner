@@ -37,6 +37,7 @@
     <ClInclude Include="src\ai_zzz.h" />
     <ClInclude Include="src\search_cautious.h" />
     <ClInclude Include="src\rule_srs.h" />
+	  <ClInclude Include="src\ai_setting.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\ai.cpp" />

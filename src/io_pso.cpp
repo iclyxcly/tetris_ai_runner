@@ -17,6 +17,7 @@
 #include "ai_zzz.h"
 #include "rule_srs.h"
 #include "sb_tree.h"
+#include "ai_setting.h"
 
 #if _MSC_VER
 #define NOMINMAX
@@ -139,6 +140,7 @@ struct test_ai
     std::mt19937 r_next, r_garbage;
     size_t next_length;
     size_t run_ms;
+    clock_t init_time, elapsed_time, start_count;
     int const *combo_table;
     int combo_table_max;
     std::vector<char> next;
@@ -148,6 +150,8 @@ struct test_ai
     char hold;
     int b2b;
     bool dead;
+    bool is_margin;
+    int margin_attack;
     int total_block;
     int total_clear;
     int total_attack;
@@ -171,8 +175,12 @@ struct test_ai
         hold = ' ';
         b2b = 0;
         dead = false;
-        next_length = 6;
+        is_margin = false;
+        margin_attack = 0;
+        next_length = 10;
         run_ms = round_ms;
+        init_time = clock();
+        elapsed_time = 0;
         total_block = 0;
         total_clear = 0;
         total_attack = 0;
@@ -211,6 +219,9 @@ struct test_ai
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->map_rise = 0;
         ai.status()->b2b = !!b2b;
+        ai.status()->b2bcnt = b2b;
+        ai.status()->is_margin = is_margin;
+        ai.status()->start_count = start_count;
         ai.status()->like = 0;
         ai.status()->value = 0;
 
@@ -332,6 +343,19 @@ struct test_ai
         if (map.count == 0)
         {
             attack += 10;
+        }
+        elapsed_time = clock() - init_time;
+        if (!is_margin)
+        {
+            if (elapsed_time > GARBAGE_MARGIN_TIME)
+            {
+                is_margin = true;
+                start_count = clock();
+            }
+        }
+        else
+        {
+            attack += std::floor((((clock() - start_count) / 1000.0) * GARBAGE_INCREASE) * attack);
         }
         ++total_block;
         total_attack += attack;
@@ -906,70 +930,36 @@ int main(int argc, char const *argv[])
     {
         rank_table_lock.lock();
         printf(
-            "[99]name         = %s\n"
-            "[  ]rank         = %d\n"
-            "[  ]score        = %f\n"
-            "[  ]best         = %f\n"
-            "[  ]match        = %d\n"
-            "[ 0]roof         = %8.3f, %8.3f, %8.3f\n"
-            "[ 1]col_trans    = %8.3f, %8.3f, %8.3f\n"
-            "[ 2]row_trans    = %8.3f, %8.3f, %8.3f\n"
-            "[ 3]hole_count   = %8.3f, %8.3f, %8.3f\n"
-            "[ 4]hole_line    = %8.3f, %8.3f, %8.3f\n"
-            "[ 5]well_depth   = %8.3f, %8.3f, %8.3f\n"
-            "[ 6]hole_depth   = %8.3f, %8.3f, %8.3f\n"
-            "[ 7]safe         = %8.3f, %8.3f, %8.3f\n"
-            "[ 8]b2b          = %8.3f, %8.3f, %8.3f\n"
-            "[ 9]attack       = %8.3f, %8.3f, %8.3f\n"
-            "[10]hold_t       = %8.3f, %8.3f, %8.3f\n"
-            "[11]hold_i       = %8.3f, %8.3f, %8.3f\n"
-            "[12]waste_t      = %8.3f, %8.3f, %8.3f\n"
-            "[13]waste_i      = %8.3f, %8.3f, %8.3f\n"
-            "[14]clear_1      = %8.3f, %8.3f, %8.3f\n"
-            "[15]clear_2      = %8.3f, %8.3f, %8.3f\n"
-            "[16]clear_3      = %8.3f, %8.3f, %8.3f\n"
-            "[17]clear_4      = %8.3f, %8.3f, %8.3f\n"
-            "[18]t2_slot      = %8.3f, %8.3f, %8.3f\n"
-            "[19]t3_slot      = %8.3f, %8.3f, %8.3f\n"
-            "[20]tspin_mini   = %8.3f, %8.3f, %8.3f\n"
-            "[21]tspin_1      = %8.3f, %8.3f, %8.3f\n"
-            "[22]tspin_2      = %8.3f, %8.3f, %8.3f\n"
-            "[23]tspin_3      = %8.3f, %8.3f, %8.3f\n"
-            "[24]decision     = %8.3f, %8.3f, %8.3f\n"
-            "[25]combo        = %8.3f, %8.3f, %8.3f\n"
-            "[26]ratio        = %8.3f, %8.3f, %8.3f\n"
-            , node->data.name
-            , rank_table.rank(double(node->data.score))
-            , node->data.score
-            , node->data.best
-            , node->data.match
-            , node->data.data.x[ 0], node->data.data.p[ 0], node->data.data.v[ 0]
-            , node->data.data.x[ 1], node->data.data.p[ 1], node->data.data.v[ 1]
-            , node->data.data.x[ 2], node->data.data.p[ 2], node->data.data.v[ 2]
-            , node->data.data.x[ 3], node->data.data.p[ 3], node->data.data.v[ 3]
-            , node->data.data.x[ 4], node->data.data.p[ 4], node->data.data.v[ 4]
-            , node->data.data.x[ 5], node->data.data.p[ 5], node->data.data.v[ 5]
-            , node->data.data.x[ 6], node->data.data.p[ 6], node->data.data.v[ 6]
-            , node->data.data.x[ 7], node->data.data.p[ 7], node->data.data.v[ 7]
-            , node->data.data.x[ 8], node->data.data.p[ 8], node->data.data.v[ 8]
-            , node->data.data.x[ 9], node->data.data.p[ 9], node->data.data.v[ 9]
-            , node->data.data.x[10], node->data.data.p[10], node->data.data.v[10]
-            , node->data.data.x[11], node->data.data.p[11], node->data.data.v[11]
-            , node->data.data.x[12], node->data.data.p[12], node->data.data.v[12]
-            , node->data.data.x[13], node->data.data.p[13], node->data.data.v[13]
-            , node->data.data.x[14], node->data.data.p[14], node->data.data.v[14]
-            , node->data.data.x[15], node->data.data.p[15], node->data.data.v[15]
-            , node->data.data.x[16], node->data.data.p[16], node->data.data.v[16]
-            , node->data.data.x[17], node->data.data.p[17], node->data.data.v[17]
-            , node->data.data.x[18], node->data.data.p[18], node->data.data.v[18]
-            , node->data.data.x[19], node->data.data.p[19], node->data.data.v[19]
-            , node->data.data.x[20], node->data.data.p[20], node->data.data.v[20]
-            , node->data.data.x[21], node->data.data.p[21], node->data.data.v[21]
-            , node->data.data.x[22], node->data.data.p[22], node->data.data.v[22]
-            , node->data.data.x[23], node->data.data.p[23], node->data.data.v[23]
-            , node->data.data.x[24], node->data.data.p[24], node->data.data.v[24]
-            , node->data.data.x[25], node->data.data.p[25], node->data.data.v[25]
-            , node->data.data.x[26], node->data.data.p[26], node->data.data.v[26]
+            "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+            " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+            " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+            , node->data.data.x[ 0]
+            , node->data.data.x[ 1]
+            , node->data.data.x[ 2]
+            , node->data.data.x[ 3]
+            , node->data.data.x[ 4]
+            , node->data.data.x[ 5]
+            , node->data.data.x[ 6]
+            , node->data.data.x[ 7]
+            , node->data.data.x[ 8]
+            , node->data.data.x[ 9]
+            , node->data.data.x[10]
+            , node->data.data.x[11]
+            , node->data.data.x[12]
+            , node->data.data.x[13]
+            , node->data.data.x[14]
+            , node->data.data.x[15]
+            , node->data.data.x[16]
+            , node->data.data.x[17]
+            , node->data.data.x[18]
+            , node->data.data.x[19]
+            , node->data.data.x[20]
+            , node->data.data.x[21]
+            , node->data.data.x[22]
+            , node->data.data.x[23]
+            , node->data.data.x[24]
+            , node->data.data.x[25]
+            , node->data.data.x[26]
         );
         rank_table_lock.unlock();
     };
@@ -1094,7 +1084,7 @@ int main(int argc, char const *argv[])
         }
         if (token[1] == "bat")
         {
-            printf("best cpp only");
+            printf("best cpp only\n");
         }
         else if (token[1] == "cpp")
         {

@@ -248,9 +248,11 @@ namespace ai_zzz
             int map_rise;
             int b2bcnt;
             int board_fill;
+            bool is_margin;
             bool b2b;
             double like;
             double value;
+            clock_t start_count;
             bool operator < (Status const&) const;
         };
     public:

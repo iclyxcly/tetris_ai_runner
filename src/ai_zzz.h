@@ -245,6 +245,7 @@ namespace ai_zzz
             int combo;
             int attack;
             int under_attack;
+            int under_attack_PRE; //soon
             int map_rise;
             int b2bcnt;
             int board_fill;

@@ -154,7 +154,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
     srs_ai.memory_limit(1024ull << 20);
-    srs_ai.ai_config()->param = { 132.477715082, 161.356292696, 160.839063447, 78.038303004, 379.902673860, 105.029800052, 36.739990149, 0.841482980, 129.145430052, 1.192216850, 3.799560764, 2.682972802, 0.237238691, -0.342838285, -3.612567214, 0.302979758, -2.262920731, 1.242009716, 1.547904495, 0.813506085, -0.503370560, 0.353190440, 8.073365442, 11.374001660, 6.105355008, 29.113963562, 1.454244994 };
+    srs_ai.ai_config()->param = { 130.224855467, 158.311932281, 159.754669646, 78.280656016, 379.700851750, 99.912123161, 40.114983302, 0.946460670, 128.889576656, 0.331770898, 4.096779257, 2.077297311, 0.374336529, 0.162502807, -5.356726537, 1.368462999, 0.271399261, 1.061450417, 1.487666007, 0.903217085, -0.486228712, 0.284530835, 7.507159974, 12.529086163, 5.890013500, 28.891223984, 1.501556583 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
@@ -192,12 +192,11 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     m_tetris::TetrisNode const* node = srs_ai.get(status);
 #if !USE_MISAMINO
-    if (isEnded) pieces = 0, now = clock(), a = 0, init_time = clock();
+    if (isEnded) pieces = 0, now = clock(), a = 0, init_time = clock(), influency = 0;
     elapsed_time = clock() - init_time;
     ++pieces, avg = (clock() - now) / pieces;
-    if (pieces > 7)pieces = 0, now = clock();
-    if (avg > 1000 / pps)influency -= 3;
-    else influency += 3;
+    if (avg > 1000 / pps)influency = 0;
+    else influency += 20, influency = std::min((clock_t)300, influency);
     if (a == 0)
     {
         if (elapsed_time > GARBAGE_MARGIN_TIME) 
@@ -207,7 +206,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
             a = 1;
         }
     }
-    time_t f = ((1000 + influency) / pps) - std::min((((pps * upcomeAtt + (combo * 2)) / 17) * boardfill) - influency, (1000 / pps) / 2) - (boardfill / pps); // not 100% accurate pps, might need rework
+    time_t f = ((1000 + influency) / pps) - std::min(((pps * (upcomeAtt + (combo * 2))) + (boardfill * 2)), ((1000 + influency) / pps) / 2.2);
 #else
     time_t f = std::pow(std::pow(100, 1.0 / 8), level);
 #endif

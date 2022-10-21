@@ -294,6 +294,7 @@ struct test_ai
             else
             {
                 b2b = 0;
+                attack += normalatk[0][combo];
             }
             ++combo;
             break;
@@ -309,8 +310,8 @@ struct test_ai
             }
             else
             {
-                attack += 1;
                 b2b = 0;
+                attack += normalatk[1][combo];
             }
             ++combo;
             break;
@@ -326,8 +327,8 @@ struct test_ai
             }
             else
             {
-                attack += 2;
                 b2b = 0;
+                attack += normalatk[2][combo];
             }
             ++combo;
             break;
@@ -355,7 +356,7 @@ struct test_ai
         }
         else
         {
-            attack += std::floor((((clock() - start_count) / 1000.0) * GARBAGE_INCREASE) * attack);
+            attack += (int)std::floor((((clock() - start_count) / 1000.0) * GARBAGE_INCREASE) * attack);
         }
         ++total_block;
         total_attack += attack;

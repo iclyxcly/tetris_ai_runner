@@ -1941,7 +1941,7 @@ namespace ai_zzz
                 result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[0][result.combo]
                     : result.b2bcnt > 3 && result.b2bcnt < 8 ? b2blv2atk[0][result.combo]
                     : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[0][result.combo]
-                    : result.b2bcnt > 23 ? b2blv4atk[eval_result.clear - 1][result.combo]
+                    : result.b2bcnt > 23 ? b2blv4atk[0][result.combo]
                     : advattack[0][result.combo];
                 ++result.b2bcnt;
             }
@@ -1990,7 +1990,7 @@ namespace ai_zzz
             else
             {
                 result.like += p.clear_3;
-                result.attack += curAtk = normalatk[eval_result.clear - 1][result.combo];
+                result.attack += curAtk = normalatk[2][result.combo];
                 result.b2bcnt = 0;
             }
             ++result.combo;

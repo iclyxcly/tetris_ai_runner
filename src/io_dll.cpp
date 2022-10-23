@@ -17,23 +17,23 @@
 
 /*
  ***********************************************************************************************
- * ���ڶ�next�汾��ST...���Լ�MOD����...�������http://misakamm.com/blog/504�����demo.cpp��AIPath
+ * 用于多next版本的ST...我自己MOD过的...参与比赛http://misakamm.com/blog/504请参照demo.cpp的AIPath
  ***********************************************************************************************
- * path ���ڽ��ղ������̲����أ������ַ�����
- *      'l': ����һ��
- *      'r': ����һ��
- *      'd': ����һ��
- *      'L': ���Ƶ�ͷ
- *      'R': ���Ƶ�ͷ
- *      'D': ���Ƶ��ף�����ճ�ϣ��ɼ����ƶ���
- *      'z': ��ʱ����ת
- *      'c': ˳ʱ����ת
- * �ַ���ĩβҪ��'\0'����ʾ��ز�������Ӳ���䣩
+ * path 用于接收操作过程并返回，操作字符集：
+ *      'l': 左移一格
+ *      'r': 右移一格
+ *      'd': 下移一格
+ *      'L': 左移到头
+ *      'R': 右移到头
+ *      'D': 下移到底（但不粘上，可继续移动）
+ *      'z': 逆时针旋转
+ *      'c': 顺时针旋转
+ * 字符串末尾要加'\0'，表示落地操作（或硬降落）
  *
- * ������֧������·��������������Ҫ�˺���ֻ��ʹ������һ���Ļ�����ɾ������������
+ * 本函数支持任意路径操作，若不需要此函数只想使用上面一个的话，则删掉本函数即可
  *
  ***********************************************************************************************
- * �����ļ�(ai.cpp)�ӹ����ų�,����demo.cpp�����Ϳ�����.���ֱ��ʹ�ñ�׼��ST����...�ᷢ��δ�������Ϊ!
+ * 将此文件(ai.cpp)从工程排除,增加demo.cpp进来就可以了.如果直接使用标准的ST调用...会发生未定义的行为!
  ***********************************************************************************************
  */
 
@@ -128,8 +128,10 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
+    // Fix O piece SD misdrop
+    srs_ai.search_config()->last_rotate = true;
+    srs_ai.search_config()->allow_d = false;
     srs_ai.search_config()->is_20g = false;
-    srs_ai.search_config()->last_rotate = false;
 #if USE_PC
     * srs_pc->search_config() = *srs_ai.search_config();
 #endif
@@ -154,16 +156,14 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
     srs_ai.memory_limit(1024ull << 20);
-    srs_ai.ai_config()->param = { 130.224855467, 158.311932281, 159.754669646, 78.280656016, 379.700851750, 99.912123161, 40.114983302, 0.946460670, 128.889576656, 0.331770898, 4.096779257, 2.077297311, 0.374336529, 0.162502807, -5.356726537, 1.368462999, 0.271399261, 1.061450417, 1.487666007, 0.903217085, -0.486228712, 0.284530835, 7.507159974, 12.529086163, 5.890013500, 28.891223984, 1.501556583 };
+    // GEN 14
+    srs_ai.ai_config()->param = { 131.761307349, 158.669504339, 159.198282963, 78.489582205, 387.765686208, 100.177931930, 38.930510095, 0.796157678, 132.600237239, 0.620679705, 4.062080094, 2.304367530, 0.355385871, 0.166847965, -2.782447195, 0.820076045, -0.266370467, 1.078003793, 1.506112642, 0.912633344, -0.319026315, 0.308180592, 6.681472538, 12.043488173, 6.031212299, 29.384334054, 1.303456378 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
-    if (srs_ai.status()->under_attack != upcomeAtt)
-    {
-        srs_ai.update();
-    }
+    srs_ai.update();
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2b = !!b2b;
@@ -206,9 +206,9 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
             a = 1;
         }
     }
-    time_t f = ((1000 + influency) / pps) - std::min(((pps * (upcomeAtt + (combo * 2))) + (boardfill * 2)), ((1000 + influency) / pps) / 2.2);
+    time_t f = (time_t)(((1000 + influency) / pps) - std::min(2 * ((pps * (upcomeAtt * 3 + (combo * 2))) + boardfill), ((1000 + influency) / pps) / 2));
 #else
-    time_t f = std::pow(std::pow(100, 1.0 / 8), level);
+    time_t f = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));
 #endif
     if (canhold)
     {
@@ -226,10 +226,17 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
 #endif
         if (run_result.change_hold)
         {
+#if !USE_MISAMINO
+            // 告诉 AI 方块的位置提升了一格 （如果没写错的话（（
+            m_tetris::TetrisBlockStatus status_renew(active, x, 22 - y + 1, (4 - spin) % 4);
+            node = srs_ai.get(status_renew);
+#endif
             result++[0] = 'v';
-            if (run_result.target != nullptr)
+            auto run_result_renew = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, 0);
+            srs_ai.update();
+            if (run_result_renew.target != nullptr)
             {
-                std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
+                std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result_renew.target->status.t), run_result_renew.target, map);
                 std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }

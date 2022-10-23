@@ -128,9 +128,8 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     }
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
-    // Fix O piece SD misdrop
-    srs_ai.search_config()->last_rotate = true;
     srs_ai.search_config()->allow_d = false;
+    srs_ai.search_config()->last_rotate = true;
     srs_ai.search_config()->is_20g = false;
 #if USE_PC
     * srs_pc->search_config() = *srs_ai.search_config();
@@ -156,8 +155,8 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
     srs_ai.memory_limit(1024ull << 20);
-    // GEN 14
-    srs_ai.ai_config()->param = { 131.761307349, 158.669504339, 159.198282963, 78.489582205, 387.765686208, 100.177931930, 38.930510095, 0.796157678, 132.600237239, 0.620679705, 4.062080094, 2.304367530, 0.355385871, 0.166847965, -2.782447195, 0.820076045, -0.266370467, 1.078003793, 1.506112642, 0.912633344, -0.319026315, 0.308180592, 6.681472538, 12.043488173, 6.031212299, 29.384334054, 1.303456378 };
+    // GEN 17
+    srs_ai.ai_config()->param = { 129.551170542, 158.886030490, 159.682964778, 78.074930407, 381.536841795, 100.832586416, 37.309660190, 0.990320576, 129.135353013, 0.549565988, 3.900304510, 2.320019419, 0.299633855, 0.026256864, -3.909323532, 0.995858322, -0.396434650, 1.192716457, 1.521167590, 0.855352276, -0.280178610, 0.322222738, 7.190457974, 11.951800190, 5.866163417, 29.193121726, 1.491782663 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
@@ -226,17 +225,11 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], 
 #endif
         if (run_result.change_hold)
         {
-#if !USE_MISAMINO
-            // 告诉 AI 方块的位置提升了一格 （如果没写错的话（（
-            m_tetris::TetrisBlockStatus status_renew(active, x, 22 - y + 1, (4 - spin) % 4);
-            node = srs_ai.get(status_renew);
-#endif
+            // resolved in js file (FallEvent variable)
             result++[0] = 'v';
-            auto run_result_renew = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, 0);
-            srs_ai.update();
-            if (run_result_renew.target != nullptr)
+            if (run_result.target != nullptr)
             {
-                std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result_renew.target->status.t), run_result_renew.target, map);
+                std::vector<char> ai_path = srs_ai.make_path(srs_ai.context()->generate(run_result.target->status.t), run_result.target, map);
                 std::memcpy(result, ai_path.data(), ai_path.size());
                 result += ai_path.size();
             }

@@ -2052,7 +2052,7 @@ namespace ai_zzz
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
             + (((result.attack * 256 * rate) * p.attack)
-                + eval_result.t2_value * (t_expect < 4 ? 512 : 320) * p.t2_slot
+                + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
                 + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
                 + (result.b2b * p.b2b)
                 + result.like * 32

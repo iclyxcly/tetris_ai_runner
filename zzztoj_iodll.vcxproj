@@ -30,6 +30,7 @@
     <ClCompile Include="src\search_tspin.cpp" />
     <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\rule_toj.cpp" />
+    <ClInclude Include="src\rule_srs.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
   </ItemGroup>

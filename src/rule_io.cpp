@@ -1,12 +1,12 @@
 ﻿
 #pragma once
 
-#include "rule_toj.h"
+#include "rule_io.h"
 
 using namespace m_tetris;
 using namespace m_tetris_rule_tools;
 
-namespace rule_toj
+namespace rule_io
 {
     bool TetrisRule::init(size_t w, size_t h)
     {
@@ -48,8 +48,8 @@ namespace rule_toj
             rotate_template<1>,
             rotate_template<3>,
             rotate_template<2>,
-            {4, {{-2, +0}, {+1, +0}, {-2, -1}, {+1, +2}}},
-            {4, {{-1, +0}, {+2, +0}, {-1, +2}, {+2, -1}}},
+            {4, {{+2, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
+            {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
         };
         TetrisOpertion op_I2 =
         {
@@ -61,8 +61,8 @@ namespace rule_toj
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
-            {4, {{-1, +0}, {+2, +0}, {-1, +2}, {+2, -1}}},
-            {4, {{+2, +0}, {-1, +0}, {+2, +1}, {-1, -2}}},
+            {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
+            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, -1}}},
         };
         TetrisOpertion op_I3 =
         {
@@ -74,8 +74,8 @@ namespace rule_toj
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
-            {4, {{+2, +0}, {-1, +0}, {+2, +1}, {-1, -2}}},
-            {4, {{+1, +0}, {-2, +0}, {+1, -2}, {-2, +1}}},
+            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, +1}}},
+            {4, {{-2, +0}, {+1, +0}, {-2, +1}, {+1, -2}}},
         };
         TetrisOpertion op_I4 =
         {
@@ -87,8 +87,8 @@ namespace rule_toj
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
-            {4, {{+1, +0}, {-2, +0}, {+1, -2}, {-2, +1}}},
-            {4, {{-2, +0}, {+1, +0}, {-2, -1}, {+1, +2}}},
+            {4, {{-2, +0}, {+1, +0}, {-2, +1}, {+1, -2}}},
+            {4, {{+1, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
         };
         TetrisOpertion op_S1 =
         {
@@ -298,7 +298,7 @@ namespace rule_toj
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
-        TetrisOpertion op_T1 =
+        TetrisOpertion op_T1 = // unchanged
         {
             create_node<'T', 0, 0, 0,
             T(0, 1, 0, 0),

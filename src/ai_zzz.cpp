@@ -1913,15 +1913,15 @@ namespace ai_zzz
             result.combo = 0;
             if (status.under_attack > 0)
             {
-                result.map_rise = status.under_attack > 8 ? 8 : status.under_attack;
-                result.board_fill += status.under_attack > 8 ? 72 : status.under_attack * 9;
+                result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
+                result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
                 if (result.map_rise > safe)
                 {
                     result.death = 1;
                 }
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
-                result.under_attack = result.under_attack > 8 ? result.under_attack - 8 : 0;
+                result.under_attack = result.under_attack > GARBAGE_CAP ? result.under_attack - GARBAGE_CAP : 0;
             }
             break;
         case 1:

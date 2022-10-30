@@ -1,4 +1,4 @@
-
+﻿
 #define _CRT_SECURE_NO_WARNINGS
 #include <ctime>
 #include <mutex>
@@ -207,11 +207,12 @@ struct test_ai
     }
     void run()
     {
-        ai.search_config()->allow_rotate_move = true;
-        ai.search_config()->allow_180 = false;
-        ai.search_config()->allow_d = false;
+        //日后可能会把效率改成VS来计算胜负
+        ai.search_config()->allow_rotate_move = false;
+        ai.search_config()->allow_180 = true;
+        ai.search_config()->allow_d = true;
         ai.search_config()->is_20g = false;
-        ai.search_config()->last_rotate = false;
+        ai.search_config()->last_rotate = true;
         ai.ai_config()->table = combo_table;
         ai.ai_config()->table_max = combo_table_max;
         ai.status()->death = 0;
@@ -381,9 +382,23 @@ struct test_ai
             {
                 break;
             }
-            int line = recv_attack.front();
+            int line = 0;
+            bool limit = false;
+            int cap = GARBAGE_CAP;
+            if (cap < recv_attack.front())
+            {
+                limit = true;
+                line = cap;
+                recv_attack.front() -= cap;
+                cap = 0;
+            }
+            else
+            {
+                cap -= recv_attack.front();
+                line = recv_attack.front();
+                recv_attack.pop_front();
+            }
             total_receive += line;
-            recv_attack.pop_front();
             for (int y = map.height - 1; y >= line; --y)
             {
                 map.row[y] = map.row[y - line];
@@ -405,6 +420,7 @@ struct test_ai
                     }
                 }
             }
+            if (limit) break;
         }
     }
     void under_attack(int line)

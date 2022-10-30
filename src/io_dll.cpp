@@ -236,7 +236,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     elapsed_time = clock() - init_time;
     ++pieces, avg = (clock() - now) / pieces;
     if (avg > 1000 / pps)influency = 0;
-    else influency += 20, influency = std::min((clock_t)300, influency);
+    else influency += 20, influency = std::min(clock_t(300), influency);
     if (a == 0)
     {
         if (elapsed_time > GARBAGE_MARGIN_TIME) 
@@ -246,7 +246,15 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
             a = 1;
         }
     }
-    time_t f = (time_t)(((1000 + influency) / pps) - std::min(2 * ((pps * (upcomeAtt * 3 + (combo * 2))) + boardfill), ((1000 + influency) / pps) / 2));
+    time_t f = 0;
+    if (!canhold)
+    {
+        f = time_t((1250 / pps) - std::min(4 * (pps * (upcomeAtt * 3 + (combo * 2) + boardfill)), (1000 / pps) / 2.5));
+    }
+    else
+    {
+        f = time_t(((1000 + influency) / pps) - std::min(4 * (pps * (upcomeAtt * 3 + (combo * 2)) + boardfill), ((1000 + influency) / pps) / 2.5));
+    }
 #else
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     time_t f = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));

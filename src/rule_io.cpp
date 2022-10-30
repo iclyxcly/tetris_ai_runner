@@ -6,6 +6,8 @@
 using namespace m_tetris;
 using namespace m_tetris_rule_tools;
 
+// https://harddrop.com/wiki/Talk:SRS#SRS.2B refered on symmetric i wall kick table
+
 namespace rule_io
 {
     bool TetrisRule::init(size_t w, size_t h)
@@ -48,8 +50,8 @@ namespace rule_io
             rotate_template<1>,
             rotate_template<3>,
             rotate_template<2>,
-            {4, {{+1, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
-            {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
+            {4, {{+1, +0}, {-2, +0}, {-2, -1}, {+1, +2}}},
+            {4, {{-1, +0}, {+2, +0}, {+2, -1}, {-1, +2}}},
         };
         TetrisOpertion op_I2 =
         {
@@ -61,8 +63,8 @@ namespace rule_io
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
-            {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
-            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, +1}}},
+            {4, {{-1, +0}, {+2, +0}, {+2, -1}, {-1, +2}}},
+            {4, {{-1, +0}, {+2, +0}, {+2, +1}, {-1, -2}}},
         };
         TetrisOpertion op_I3 =
         {
@@ -74,8 +76,8 @@ namespace rule_io
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
-            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, +1}}},
-            {4, {{-2, +0}, {+1, +0}, {-2, +1}, {+1, -2}}},
+            {4, {{-1, +0}, {+2, +0}, {+2, +1}, {-1, -2}}},
+            {4, {{+1, +0}, {-2, +0}, {-2, +1}, {+1, -2}}},
         };
         TetrisOpertion op_I4 =
         {
@@ -87,8 +89,8 @@ namespace rule_io
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
-            {4, {{-2, +0}, {+1, +0}, {-2, +1}, {+1, -2}}},
-            {4, {{+1, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
+            {4, {{+1, +0}, {-2, +0}, {-2, +1}, {+1, -2}}},
+            {4, {{+1, +0}, {-2, +0}, {-2, -1}, {+1, +2}}},
         };
         TetrisOpertion op_S1 =
         {

@@ -48,7 +48,7 @@ namespace rule_io
             rotate_template<1>,
             rotate_template<3>,
             rotate_template<2>,
-            {4, {{+2, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
+            {4, {{+1, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
             {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
         };
         TetrisOpertion op_I2 =
@@ -62,7 +62,7 @@ namespace rule_io
             rotate_template<0>,
             rotate_template<3>,
             {4, {{+2, +0}, {-1, +0}, {+2, -1}, {-1, +2}}},
-            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, -1}}},
+            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, +1}}},
         };
         TetrisOpertion op_I3 =
         {

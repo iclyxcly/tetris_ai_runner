@@ -12,6 +12,7 @@
 #include "search_tspin.h"
 #include "ai_zzz.h"
 #include "rule_io.h"
+#include "rule_toj.h"
 #include "random.h"
 #include "ai_setting.h"
 
@@ -36,7 +37,7 @@
  * 将此文件(ai.cpp)从工程排除,增加demo.cpp进来就可以了.如果直接使用标准的ST调用...会发生未定义的行为!
  ***********************************************************************************************
  */
-
+#if !USE_MISAMINO
 #if USE_THREAD
 m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
 #else
@@ -44,6 +45,16 @@ m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search
 #endif
 #if USE_PC
 std::unique_ptr<m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>> srs_pc;
+#endif
+#else
+#if USE_THREAD
+m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#else
+m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#endif
+#if USE_PC
+std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>> srs_pc;
+#endif
 #endif
 std::mutex srs_ai_lock;
 
@@ -99,17 +110,31 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
         return result;
     }
 #if USE_PC
+#if !USE_MISAMINO
     if (!srs_pc || srs_pc->context() != srs_ai.context())
     {
         srs_pc.reset(new m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>(srs_ai.context()));
         memset(srs_pc->status(), 0, sizeof * srs_pc->status());
     }
+#else
+    if (!srs_pc || srs_pc->context() != srs_ai.context())
+    {
+        srs_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>(srs_ai.context()));
+        memset(srs_pc->status(), 0, sizeof * srs_pc->status());
+    }
+#endif
 #endif
     m_tetris::TetrisMap map(10, 40);
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
     {
         map.row[d] = field[s];
     }
+#if USE_MISAMINO
+    for (size_t d = 23, s = 0; s < 8; ++d, ++s)
+    {
+        map.row[d] = overfield[s];
+    }
+#endif
     for (int my = 0; my < map.height; ++my)
     {
         for (int mx = 0; mx < map.width; ++mx)
@@ -122,6 +147,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
             }
         }
     }
+#if !USE_MISAMINO
     //int i = 0;
     //switch (active)
     //{
@@ -141,6 +167,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     //    i = map.full(4, 21) || map.full(5, 21) || map.full(6, 21) || map.full(7, 21) ? 1 : 0;
     //    break;
     //}
+#endif
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
     srs_ai.search_config()->last_rotate = true;
@@ -202,10 +229,9 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     srs_pc->status()->value = 0;
 #endif
 
+#if !USE_MISAMINO
     //m_tetris::TetrisBlockStatus status(active, x, 22 - (y - i), (4 - spin) % 4);
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
-    m_tetris::TetrisNode const* node = srs_ai.get(status);
-#if !USE_MISAMINO
     if (isEnded) pieces = 0, now = clock(), a = 0, init_time = clock(), influency = 0;
     elapsed_time = clock() - init_time;
     ++pieces, avg = (clock() - now) / pieces;
@@ -222,8 +248,10 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     }
     time_t f = (time_t)(((1000 + influency) / pps) - std::min(2 * ((pps * (upcomeAtt * 3 + (combo * 2))) + boardfill), ((1000 + influency) / pps) / 2));
 #else
+    m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     time_t f = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));
 #endif
+    m_tetris::TetrisNode const* node = srs_ai.get(status);
     if (canhold)
     {
 #if USE_PC

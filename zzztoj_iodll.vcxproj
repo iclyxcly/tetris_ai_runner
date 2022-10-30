@@ -19,6 +19,7 @@
     <ClInclude Include="src\search_tspin.h" />
     <ClInclude Include="src\random.h" />
     <ClInclude Include="src\rule_io.h" />
+	  <ClInclude Include="src\rule_toj.h" />
     <ClInclude Include="src\tetris_core.h" />
     <ClInclude Include="src\ai_zzz.h" />
   </ItemGroup>
@@ -29,6 +30,7 @@
     <ClCompile Include="src\search_tspin.cpp" />
     <ClCompile Include="src\random.cpp" />
     <ClCompile Include="src\rule_io.cpp" />
+	  <ClCompile Include="src\rule_toj.cpp" />
     <ClCompile Include="src\tetris_core.cpp" />
     <ClCompile Include="src\ai_zzz.cpp" />
   </ItemGroup>

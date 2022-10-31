@@ -206,7 +206,6 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     srs_ai.update();
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
-    srs_ai.status()->b2b = !!b2b;
     srs_ai.status()->b2bcnt = b2b;
 #if !USE_MISAMINO
     srs_ai.status()->board_fill = boardfill;

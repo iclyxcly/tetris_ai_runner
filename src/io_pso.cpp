@@ -145,6 +145,7 @@ struct test_ai
     int combo_table_max;
     std::vector<char> next;
     std::deque<int> recv_attack;
+    std::deque<clock_t> g_delay;
     int send_attack;
     int combo;
     char hold;
@@ -170,6 +171,7 @@ struct test_ai
         r_garbage.seed(r_next());
         next.clear();
         recv_attack.clear();
+        g_delay.clear();
         send_attack = 0;
         combo = 0;
         hold = ' ';
@@ -207,7 +209,6 @@ struct test_ai
     }
     void run()
     {
-        //日后可能会把效率改成VS来计算胜负
         ai.search_config()->allow_rotate_move = false;
         ai.search_config()->allow_180 = true;
         ai.search_config()->allow_d = true;
@@ -219,7 +220,6 @@ struct test_ai
         ai.status()->combo = combo;
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->map_rise = 0;
-        ai.status()->b2b = !!b2b;
         ai.status()->b2bcnt = b2b;
         ai.status()->is_margin = is_margin;
         ai.status()->start_count = start_count;
@@ -370,6 +370,7 @@ struct test_ai
                 {
                     send_attack -= recv_attack.front();
                     recv_attack.pop_front();
+                    g_delay.pop_front();
                     continue;
                 }
                 else
@@ -385,19 +386,24 @@ struct test_ai
             int line = 0;
             bool limit = false;
             int cap = GARBAGE_CAP;
-            if (cap < recv_attack.front())
+            if (clock() - g_delay.front() > GARBAGE_DELAY)
             {
-                limit = true;
-                line = cap;
-                recv_attack.front() -= cap;
-                cap = 0;
+                if (cap < recv_attack.front())
+                {
+                    limit = true;
+                    line = cap;
+                    recv_attack.front() -= cap;
+                    cap = 0;
+                }
+                else
+                {
+                    cap -= recv_attack.front();
+                    line = recv_attack.front();
+                    recv_attack.pop_front();
+                    g_delay.pop_front();
+                }
             }
-            else
-            {
-                cap -= recv_attack.front();
-                line = recv_attack.front();
-                recv_attack.pop_front();
-            }
+            else break;
             total_receive += line;
             for (int y = map.height - 1; y >= line; --y)
             {
@@ -428,6 +434,7 @@ struct test_ai
         if(line > 0)
         {
             recv_attack.emplace_back(line);
+            g_delay.emplace_back(clock());
         }
     }
 

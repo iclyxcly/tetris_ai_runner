@@ -1954,7 +1954,6 @@ namespace ai_zzz
                 result.b2bcnt = 0;
             }
             ++result.combo; // combo included inside atk table
-            result.b2b = node.type != TSpinType::None;
             break;
         case 2:
             if (node.type != TSpinType::None)
@@ -1974,7 +1973,6 @@ namespace ai_zzz
                 result.b2bcnt = 0;
             }
             ++result.combo;
-            result.b2b = node.type != TSpinType::None;
             break;
         case 3:
             if (node.type != TSpinType::None)
@@ -1994,7 +1992,6 @@ namespace ai_zzz
                 result.b2bcnt = 0;
             }
             ++result.combo;
-            result.b2b = node.type != TSpinType::None;
             break;
         case 4:
             result.attack += curAtk = result.b2bcnt > 1 && result.b2bcnt < 4 ? b2blv1atk[1][result.combo]
@@ -2005,13 +2002,11 @@ namespace ai_zzz
             result.like += (result.combo + result.attack + result.b2bcnt) * p.clear_4;
             ++result.b2bcnt;
             ++result.combo;
-            result.b2b = true;
             break;
         }
         result.board_fill -= eval_result.clear * 9;
         if (eval_result.count == 0 && result.map_rise == 0)
         {
-            result.like += 999;
             result.attack += 10;
         }
         if (result.is_margin)
@@ -2053,8 +2048,8 @@ namespace ai_zzz
         result.value += ((0.
             + (((result.attack * 256 * rate) * p.attack)
                 + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
-                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2b ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
-                + (result.b2b * p.b2b)
+                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt > 0 ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
+                + (result.b2bcnt * p.b2b)
                 + result.like * 32
                 ) - (result.board_fill * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))

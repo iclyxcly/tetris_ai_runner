@@ -2049,7 +2049,7 @@ namespace ai_zzz
             + (((result.attack * 256 * rate) * p.attack)
                 + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
                 + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt > 0 ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
-                + (result.b2bcnt * p.b2b)
+                + (!!result.b2bcnt * p.b2b)
                 + result.like * 32
                 ) - (result.board_fill * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))

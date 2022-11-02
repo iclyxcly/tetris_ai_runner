@@ -252,8 +252,9 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     }
     else
     {
-        f = time_t(((1000 + influency) / pps) - std::min(4 * (pps * (upcomeAtt * 3 + (combo * 2)) + boardfill), ((1000 + influency) / pps) / 2.5));
+        f = time_t(((1100 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
     }
+    time_t think_limit = f > 600 ? 600 : f;
 #else
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
     time_t f = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));
@@ -264,7 +265,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
 #if USE_PC
         srs_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
 #endif
-        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, f);
+        auto run_result = srs_ai.run_hold(map, node, hold, curCanHold, next, maxDepth, think_limit);
 #if USE_PC
         auto pc_result = srs_pc->run_hold(map, node, hold, curCanHold, next, maxDepth, time_t(0));
         if (pc_result.status.pc)
@@ -301,7 +302,7 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
 #if USE_PC
         srs_pc->run(map, node, next, maxDepth, time_t(0));
 #endif
-        auto run_result = srs_ai.run(map, node, next, maxDepth, f);
+        auto run_result = srs_ai.run(map, node, next, maxDepth, think_limit);
 #if USE_PC
         auto pc_result = srs_pc->run(map, node, next, maxDepth, time_t(0));
         if (pc_result.status.pc)
@@ -319,5 +320,9 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     }
     result++[0] = 'V';
     result[0] = '\0';
+    if (f > think_limit) 
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(f - think_limit));
+    }
     return result_buffer[player];
 }

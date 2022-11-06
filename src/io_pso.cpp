@@ -220,6 +220,7 @@ struct test_ai
         ai.status()->combo = combo;
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->map_rise = 0;
+        ai.status()->pc = false;
         ai.status()->b2bcnt = b2b;
         ai.status()->is_margin = is_margin;
         ai.status()->start_count = start_count;

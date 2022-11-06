@@ -1877,7 +1877,7 @@ namespace ai_zzz
 #endif
         result.value = eval_result.value;
         auto& p = config_->param;
-        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        int safe = node->row >= 19 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         int curAtk = 0;
         int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
                                          {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,  5,  5,  5,  5,  6},
@@ -1915,7 +1915,7 @@ namespace ai_zzz
             {
                 result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
                 result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
-                if (result.map_rise > safe)
+                if (node->row + result.map_rise >= 19)
                 {
                     result.death = 1;
                 }
@@ -1999,7 +1999,7 @@ namespace ai_zzz
                 : result.b2bcnt > 7 && result.b2bcnt < 24 ? b2blv3atk[1][result.combo]
                 : result.b2bcnt > 23 ? b2blv4atk[1][result.combo]
                 : advattack[1][result.combo];
-            result.like += (result.combo + result.attack + result.b2bcnt) * p.clear_4;
+            result.like += (result.combo + result.b2bcnt) * (1 + result.attack) * p.clear_4;
             ++result.b2bcnt;
             ++result.combo;
             break;
@@ -2007,6 +2007,14 @@ namespace ai_zzz
         result.board_fill -= eval_result.clear * 9;
         if (eval_result.count == 0 && result.map_rise == 0)
         {
+            if (!result.pc) 
+            {
+                result.death = 1;
+            }
+            else
+            {
+                result.like += 999;
+            }
             result.attack += 10;
         }
         if (result.is_margin)
@@ -2042,7 +2050,9 @@ namespace ai_zzz
             break;
         }
         result.like += result.attack;
+        int ua = result.under_attack;
         result.under_attack = std::max(0, result.under_attack - result.attack);
+        result.attack = std::max(0, result.attack - ua);
         double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
@@ -2053,7 +2063,7 @@ namespace ai_zzz
                 + result.like * 32
                 ) - (result.board_fill * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-            + (result.max_combo * (result.max_combo - 1) * p.combo) + result.attack
+            + (result.max_combo * (result.max_combo - 1) * p.combo) + (result.attack * p.combo)
             - result.death * 999999999.0
             );
         return result;
@@ -2061,11 +2071,11 @@ namespace ai_zzz
 
     size_t IO_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
-        if (up >= 16)
+        if (up >= 19)
         {
             return 1;
         }
-        size_t height = 18 - up;
+        size_t height = 21 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 

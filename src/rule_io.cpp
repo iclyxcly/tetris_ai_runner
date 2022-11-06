@@ -6,7 +6,7 @@
 using namespace m_tetris;
 using namespace m_tetris_rule_tools;
 
-// https://harddrop.com/wiki/Talk:SRS#SRS.2B refered on symmetric i wall kick table
+// https://tetr.io/tetrio.js
 
 namespace rule_io
 {
@@ -63,8 +63,8 @@ namespace rule_io
             rotate_template<2>,
             rotate_template<0>,
             rotate_template<3>,
-            {4, {{-1, +0}, {+2, +0}, {+2, -1}, {-1, +2}}},
-            {4, {{-1, +0}, {+2, +0}, {+2, +1}, {-1, -2}}},
+            {4, {{-1, +0}, {+2, +0}, {-1, +2}, {+2, +1}}},
+            {4, {{-1, +0}, {+2, +0}, {-1, -2}, {+2, +1}}},
         };
         TetrisOpertion op_I3 =
         {
@@ -76,8 +76,8 @@ namespace rule_io
             rotate_template<3>,
             rotate_template<1>,
             rotate_template<0>,
-            {4, {{-1, +0}, {+2, +0}, {+2, +1}, {-1, -2}}},
-            {4, {{+1, +0}, {-2, +0}, {-2, +1}, {+1, -2}}},
+            {4, {{+2, +0}, {-1, +0}, {+2, +1}, {-1, -2}}},
+            {4, {{-2, +0}, {+1, +0}, {-2, +1}, {+1, -2}}},
         };
         TetrisOpertion op_I4 =
         {
@@ -89,8 +89,8 @@ namespace rule_io
             rotate_template<0>,
             rotate_template<2>,
             rotate_template<1>,
-            {4, {{+1, +0}, {-2, +0}, {-2, +1}, {+1, -2}}},
-            {4, {{+1, +0}, {-2, +0}, {-2, -1}, {+1, +2}}},
+            {4, {{+1, +0}, {-2, +0}, {+1, -2}, {-2, +1}}},
+            {4, {{+1, +0}, {-2, +0}, {+1, +2}, {-2, -1}}},
         };
         TetrisOpertion op_S1 =
         {
@@ -300,7 +300,7 @@ namespace rule_io
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
         };
-        TetrisOpertion op_T1 = // unchanged
+        TetrisOpertion op_T1 =
         {
             create_node<'T', 0, 0, 0,
             T(0, 1, 0, 0),
@@ -312,6 +312,7 @@ namespace rule_io
             rotate_template<2>,
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
+            {4, {{+0, +1}, {+1, +1}, {-1, +1}, {+1, +0}, {-1, +0}}},
         };
         TetrisOpertion op_T2 =
         {
@@ -325,6 +326,7 @@ namespace rule_io
             rotate_template<3>,
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
             {4, {{+1, +0}, {+1, -1}, {+0, +2}, {+1, +2}}},
+            {4, {{+1, +0}, {+1, +2}, {+1, +1}, {+0, +2}, {+0, +1}}},
         };
         TetrisOpertion op_T3 =
         {
@@ -338,6 +340,7 @@ namespace rule_io
             rotate_template<0>,
             {4, {{+1, +0}, {+1, +1}, {+0, -2}, {+1, -2}}},
             {4, {{-1, +0}, {-1, +1}, {+0, -2}, {-1, -2}}},
+            {4, {{+0, -1}, {-1, -1}, {+1, -1}, {-1, +0}, {+1, +0}}},
         };
         TetrisOpertion op_T4 =
         {
@@ -351,6 +354,7 @@ namespace rule_io
             rotate_template<1>,
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
             {4, {{-1, +0}, {-1, -1}, {+0, +2}, {-1, +2}}},
+            {4, {{-1, +0}, {-1, +2}, {-1, +1}, {+0, +2}, {+0, +1}}},
         };
 #undef T
         info.insert(std::make_pair(std::make_pair('O', 0), op_O1));

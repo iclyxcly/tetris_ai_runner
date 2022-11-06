@@ -97,7 +97,7 @@ extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
 }
 extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
 #else
-extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, bool isEnded, int boardfill, int player)
+extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, bool burst, bool pc, bool isEnded, int boardfill, int player)
 #endif
 {
     static char result_buffer[8][1024];
@@ -203,10 +203,11 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
-    srs_ai.update();
+    srs_ai.status()->pc = pc;
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2bcnt = b2b;
+    srs_ai.update();
 #if !USE_MISAMINO
     srs_ai.status()->board_fill = boardfill;
 #endif
@@ -246,13 +247,27 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
         }
     }
     time_t f = 0;
-    if (!canhold)
-    {
-        f = time_t((1250 / pps) - std::min(4 * (pps * (upcomeAtt * 3 + (combo * 2) + boardfill)), (1000 / pps) / 2.5));
+    if (burst) {
+        if (!canhold)
+        {
+            f = time_t(((1150 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
+        }
+        else
+        {
+            f = time_t(((1100 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
+        }
     }
-    else
-    {
-        f = time_t(((1100 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
+    else {
+        if (!canhold)
+        {
+            if (avg > 1000 / pps)influency -= 1;
+            f = time_t((900 + influency) / pps);
+        }
+        else
+        {
+            if (avg > 1000 / pps)influency -= 1;
+            f = time_t((900 + influency) / pps);
+        }
     }
     time_t think_limit = f > 600 ? 600 : f;
 #else

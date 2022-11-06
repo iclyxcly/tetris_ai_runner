@@ -248,6 +248,7 @@ namespace ai_zzz
             int under_attack_PRE; //soon
             int map_rise;
             int b2bcnt;
+            bool pc;
             int board_fill;
             bool is_margin;
             double like;

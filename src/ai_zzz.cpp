@@ -1604,7 +1604,7 @@ namespace ai_zzz
 
     std::string IO_v08::ai_name() const
     {
-        return "ZZZ TOJ v0.8";
+        return "ZZZ TOJ v0.8 IO VER";
     }
 
     IO_v08::Result IO_v08::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
@@ -1872,12 +1872,9 @@ namespace ai_zzz
                 node.type = TSpinType::None;
             }
         }
-#if USE_MISAMINO
-        result.board_fill = eval_result.count;
-#endif
         result.value = eval_result.value;
         auto& p = config_->param;
-        int safe = node->row >= 19 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         int curAtk = 0;
         int normalatk[3][21] = { {0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,  3,  3,  3,  3,  3},
                                          {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4,  5,  5,  5,  5,  6},
@@ -1902,10 +1899,6 @@ namespace ai_zzz
             b2blv4atk[3][21] = { { 6,  7,  9, 10, 12, 13, 15, 16, 18, 19, 21, 22, 24, 25, 27, 28, 30, 31, 33, 34, 36},
                                 { 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48},
                                 {10, 12, 15, 17, 20, 22, 25, 27, 30, 32, 35, 37, 40, 42, 45, 47, 50, 52, 55, 57, 60} };
-        if (safe <= 0)
-        {
-            result.death = 1;
-        }
         switch (eval_result.clear)
         {
         case 0:
@@ -1915,10 +1908,6 @@ namespace ai_zzz
             {
                 result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
                 result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
-                if (node->row + result.map_rise >= 19)
-                {
-                    result.death = 1;
-                }
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
                 result.under_attack = result.under_attack > GARBAGE_CAP ? result.under_attack - GARBAGE_CAP : 0;
@@ -2049,6 +2038,9 @@ namespace ai_zzz
             }
             break;
         }
+        safe += eval_result.clear - result.map_rise;
+        if (safe <= 0 || node->row + result.map_rise - eval_result.clear >= 20)
+            result.death = 1;
         result.like += result.attack;
         int ua = result.under_attack;
         result.under_attack = std::max(0, result.under_attack - result.attack);
@@ -2071,11 +2063,11 @@ namespace ai_zzz
 
     size_t IO_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
-        if (up >= 19)
+        if (up >= 20)
         {
             return 1;
         }
-        size_t height = 21 - up;
+        size_t height = 22 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 

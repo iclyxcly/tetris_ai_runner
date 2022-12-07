@@ -226,6 +226,7 @@ struct test_ai
         ai.status()->start_count = start_count;
         ai.status()->like = 0;
         ai.status()->value = 0;
+        ai.status()->board_fill = map.count;
 
         char current = next.front();
         auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);

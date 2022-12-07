@@ -89,7 +89,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl AIDllVersion()
     return 2;
 }
 
-extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
+extern "C" DECLSPEC_EXPORT char* __cdecl AIName(int level)
 {
     static char name[200];
     strcpy(name, srs_ai.ai_name().c_str());
@@ -97,32 +97,28 @@ extern "C" DECLSPEC_EXPORT char *__cdecl AIName(int level)
 }
 extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int overfield[], int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, int level, int player)
 #else
-extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int field_h, int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int comboTable[], int maxDepth, double pps, bool burst, bool pc, bool isEnded, int boardfill, int player)
+extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int combo, char next[], char hold, bool curCanHold, char active, int x, int y, int spin, bool canhold, bool can180spin, int upcomeAtt, int maxDepth, double pps, bool burst, bool pc, bool isEnded, int player)
 #endif
 {
     static char result_buffer[8][1024];
     char* result = result_buffer[player];
     std::unique_lock<std::mutex> lock(srs_ai_lock);
 
-    if (field_w != 10 || field_h != 22 || !srs_ai.prepare(10, 40))
+    if (!srs_ai.prepare(10, 40))
     {
         *result = '\0';
         return result;
     }
 #if USE_PC
+    if (!srs_pc || srs_pc->context() != srs_ai.context())
+    {
 #if !USE_MISAMINO
-    if (!srs_pc || srs_pc->context() != srs_ai.context())
-    {
         srs_pc.reset(new m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>(srs_ai.context()));
-        memset(srs_pc->status(), 0, sizeof * srs_pc->status());
-    }
 #else
-    if (!srs_pc || srs_pc->context() != srs_ai.context())
-    {
         srs_pc.reset(new m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>(srs_ai.context()));
+#endif
         memset(srs_pc->status(), 0, sizeof * srs_pc->status());
     }
-#endif
 #endif
     m_tetris::TetrisMap map(10, 40);
     for (size_t d = 0, s = 22; d < 23; ++d, --s)
@@ -147,34 +143,43 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
             }
         }
     }
-#if !USE_MISAMINO
-    //int i = 0;
-    //switch (active)
-    //{
-    //case 'S':
-    //    i = map.full(4, 21) || map.full(5, 21) ? 1 : 0;
-    //    break;
-    //case 'L':
-    //case 'J':
-    //case 'T':
-    //    i = map.full(4, 21) || map.full(5, 21) || map.full(6, 21) ? 1 : 0;
-    //    break;
-    //case 'O':
-    //case 'Z':
-    //    i = map.full(5, 21) || map.full(6, 21) ? 1 : 0;
-    //    break;
-    //case 'I':
-    //    i = map.full(4, 21) || map.full(5, 21) || map.full(6, 21) || map.full(7, 21) ? 1 : 0;
-    //    break;
-    //}
-#endif
     srs_ai.search_config()->allow_rotate_move = false;
     srs_ai.search_config()->allow_180 = can180spin;
+    srs_ai.search_config()->allow_D = true;
+    srs_ai.search_config()->allow_LR = true;
+    srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->last_rotate = true;
     srs_ai.search_config()->is_20g = false;
 #if USE_PC
     * srs_pc->search_config() = *srs_ai.search_config();
 #endif
+#if !USE_MISAMINO
+    // fix for lock delay (suicide bug not fixed)
+    int i = 0;
+    int j = 0;
+    switch (active)
+    {
+    case 'S':
+        i = (map.full(3, 20) || map.full(4, 20)) ? 1 : 0;
+        j = (map.full(3, 19) || map.full(4, 19)) ? 2 : 1;
+        break;
+    case 'L':
+    case 'J':
+    case 'T':
+        i = (map.full(3, 20) || map.full(4, 20) || map.full(5, 20)) ? 1 : 0;
+        j = (map.full(3, 19) || map.full(4, 19) || map.full(5, 19)) ? 2 : 1;
+        break;
+    case 'O':
+    case 'Z':
+        i = (map.full(4, 20) || map.full(5, 20)) ? 1 : 0;
+        j = (map.full(4, 19) || map.full(5, 19)) ? 2 : 1;
+        break;
+    case 'I':
+        i = (map.full(3, 20) || map.full(4, 20) || map.full(5, 20) || map.full(6, 20)) ? 1 : 0;
+        j = (map.full(3, 19) || map.full(4, 19) || map.full(5, 19) || map.full(6, 19)) ? 2 : 1;
+        break;
+    }
+#else
     struct ComboTable {
         int table[24] = { 0 };
         int table_max = 0;
@@ -195,21 +200,23 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     srs_pc->ai_config()->table = table.table;
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
+#endif
     srs_ai.memory_limit(1024ull << 20);
-    // GEN 19
-    srs_ai.ai_config()->param = { 129.271797681, 157.654934407, 159.339194814, 78.880984075, 376.691632445, 100.573124428, 40.050481765, 1.346822692, 129.027085819, 0.510609201, 4.040369705, 2.197667163, 0.253586898, 0.048747843, -5.446558259, 1.103539195, -0.088376950, 1.033262405, 1.414885361, 0.958547792, -0.847350442, 0.317920170, 7.530992201, 12.369924497, 5.870477116, 29.245939927, 1.529551513 };
+    // GEN 30
+    srs_ai.ai_config()->param = { 129.483494068, 161.566335529, 159.394487511, 85.504724341, 376.428740775, 100.328461671, 39.340849936, 0.814503312, 126.956878687, 0.754819213, 3.892599681, 2.539271186, -0.018431142, 0.084813818, -3.730212674, 1.214237244, 1.307539147, 1.122485028, 1.375757742, 0.904241122, -0.877201751, 0.437047338, 7.779604902, 12.523389795, 6.134036355, 29.244593737, 1.612707087 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
-    srs_ai.status()->pc = pc;
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->b2bcnt = b2b;
-    srs_ai.update();
+    srs_ai.status()->board_fill = map.count;
 #if !USE_MISAMINO
-    srs_ai.status()->board_fill = boardfill;
+    srs_ai.status()->pc = pc;
+#else
+    srs_ai.status()->pc = true;
 #endif
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;
@@ -230,16 +237,15 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
 #endif
 
 #if !USE_MISAMINO
-    //m_tetris::TetrisBlockStatus status(active, x, 22 - (y - i), (4 - spin) % 4);
-    m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
-    if (isEnded) pieces = 0, now = clock(), a = 0, init_time = clock(), influency = 0;
+    m_tetris::TetrisBlockStatus status(active, x, 22 - (y - i), (4 - spin) % 4);
+    if (isEnded) pieces = time_t(0), now = clock(), a = 0, init_time = clock(), influency = time_t(0);
     elapsed_time = clock() - init_time;
     ++pieces, avg = (clock() - now) / pieces;
-    if (avg > 1000 / pps)influency = 0;
-    else influency += 20, influency = std::min(clock_t(300), influency);
+    if (avg > time_t(1000) / pps)influency = time_t(0);
+    else influency += time_t(20), influency = std::min(clock_t(300), influency);
     if (a == 0)
     {
-        if (elapsed_time > GARBAGE_MARGIN_TIME) 
+        if (elapsed_time > GARBAGE_MARGIN_TIME)
         {
             srs_ai.status()->is_margin = true;
             srs_ai.status()->start_count = clock();
@@ -250,31 +256,35 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     if (burst) {
         if (!canhold)
         {
-            f = time_t(((1150 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
+            f = time_t(((1150 + influency) / pps) - std::min((map.count * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
         }
         else
         {
-            f = time_t(((1100 + influency) / pps) - std::min((boardfill * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
+            f = time_t(((1100 + influency) / pps) - std::min((map.count * 2) + (upcomeAtt * 10) + 0.0, ((1100 + influency) / pps) / 1.8));
         }
     }
     else {
         if (!canhold)
         {
-            if (avg > 1000 / pps)influency -= 1;
+            if (avg > time_t(1000) / pps)influency -= time_t(1);
             f = time_t((900 + influency) / pps);
         }
         else
         {
-            if (avg > 1000 / pps)influency -= 1;
+            if (avg > time_t(1000) / pps)influency -= time_t(1);
             f = time_t((900 + influency) / pps);
         }
     }
-    time_t think_limit = f > 600 ? 600 : f;
+    time_t think_limit = f > time_t(600) ? time_t(600) : f;
+    if (j == 2 && think_limit > 400) {
+        think_limit = f = time_t(400);
+    }
 #else
     m_tetris::TetrisBlockStatus status(active, x, 22 - y, (4 - spin) % 4);
-    time_t f = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));
+    time_t think_limit = (time_t)(std::pow(std::pow(100, 1.0 / 8), level));
 #endif
     m_tetris::TetrisNode const* node = srs_ai.get(status);
+    srs_ai.update();
     if (canhold)
     {
 #if USE_PC
@@ -335,9 +345,11 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int field_w, int 
     }
     result++[0] = 'V';
     result[0] = '\0';
-    if (f > think_limit) 
+#if !USE_MISAMINO
+    if (f > think_limit)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(f - think_limit));
     }
+#endif
     return result_buffer[player];
 }

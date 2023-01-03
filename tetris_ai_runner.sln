@@ -13,9 +13,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "demo", "demo.vcxproj", "{6A
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "top_bot", "top_bot.vcxproj", "{A7EF8FDE-32B9-4386-8329-3ADC391C9E7F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ppt_pso", "top_pso.vcxproj", "{301BCE5D-F7CD-4C88-B565-0290F70B0530}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "io_pso", "top_pso.vcxproj", "{301BCE5D-F7CD-4C88-B565-0290F70B0530}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zzztoj_iodll", "zzztoj_iodll.vcxproj", "{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "zzztoj_io_dll", "zzztoj_iodll.vcxproj", "{FF420169-6A42-4BFF-BA0C-FE45A48AA1A6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

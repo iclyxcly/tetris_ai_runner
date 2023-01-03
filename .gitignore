@@ -61,3 +61,6 @@ Icon
 *.dll
 *.exe
 *.bin
+*.xml
+*.txt
+*.sarif

@@ -2002,7 +2002,7 @@ namespace ai_zzz
             }
             else
             {
-                result.like += 999;
+                result.like += 999 * result.combo;
             }
             result.attack += 10;
         }

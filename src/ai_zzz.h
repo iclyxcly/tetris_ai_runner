@@ -250,6 +250,8 @@ namespace ai_zzz
             int b2bcnt;
             bool pc;
             int board_fill;
+            int board_fill_prev;
+            int board_fill_diff;
             bool is_margin;
             double like;
             double value;

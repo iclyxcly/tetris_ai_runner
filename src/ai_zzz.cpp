@@ -2043,6 +2043,7 @@ namespace ai_zzz
             result.death = 1;
         result.like += result.attack;
         int ua = result.under_attack;
+        result.board_fill_diff = int(std::max(0, result.board_fill - result.board_fill_prev));
         result.under_attack = std::max(0, result.under_attack - result.attack);
         result.attack = std::max(0, result.attack - ua);
         double rate = (1. / (depth + 1)) + 3;
@@ -2053,11 +2054,12 @@ namespace ai_zzz
                 + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt > 0 ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
                 + (!!result.b2bcnt * p.b2b)
                 + result.like * 32
-                ) - (result.board_fill * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
+                ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
             ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * p.combo) + (result.attack * p.combo)
             - result.death * 999999999.0
             );
+        result.board_fill_prev = result.board_fill;
         return result;
     }
 

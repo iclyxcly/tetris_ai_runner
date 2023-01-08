@@ -202,8 +202,8 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int comb
 #endif
 #endif
     srs_ai.memory_limit(1024ull << 20);
-    // GEN 32 + 42
-    srs_ai.ai_config()->param = { 130.370196113, 162.787588248, 164.800142768, 80.683457536, 375.846430110, 101.684150987, 36.603683590, 1.796350451, 127.898289390, 0.975478243, 5.509488458, 2.924355414, 0.548919358, -0.179333317, -11.682661222, 0.722919543, 0.873114284, 1.619447200, 1.496687411, 0.724582911, -2.118255837, 0.663148310, 6.859126120, 11.469107464, 6.682264719, 28.226457919, 1.425601654 };
+    // GEN 32 + 48
+    srs_ai.ai_config()->param = { 130.419685866, 162.708784427, 164.203987088, 74.205968076, 375.769558681, 100.387640736, 39.187524575, 1.724071820, 128.031570037, 1.057501942, 5.291169008, 2.820626218, -0.573770310, -0.030543916, -10.641794951, 0.988840744, 0.874993572, 1.116310052, 1.597068693, 0.588053727, -2.114020027, 0.676827406, 6.866184346, 11.591394016, 6.659732687, 26.941747589, 1.447084472 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
@@ -351,5 +351,6 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int comb
         std::this_thread::sleep_for(std::chrono::milliseconds(f - think_limit));
     }
 #endif
+    srs_ai.status()->board_fill_prev = map.count;
     return result_buffer[player];
 }

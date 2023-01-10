@@ -1993,7 +1993,7 @@ namespace ai_zzz
             ++result.combo;
             break;
         }
-        result.board_fill -= eval_result.clear * 9;
+        result.board_fill -= (eval_result.clear * 10) - 4;
         if (eval_result.count == 0 && result.map_rise == 0)
         {
             if (!result.pc) 

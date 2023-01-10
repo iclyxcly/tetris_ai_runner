@@ -2051,12 +2051,12 @@ namespace ai_zzz
         result.value += ((0.
             + (((result.attack * 256 * rate) * p.attack)
                 + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
-                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt > 0 ? 512 : 256) / (6 + result.under_attack) : 0) * p.t3_slot)
-                + (!!result.b2bcnt * p.b2b)
+                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot)
+                + (safe >= 10 ? (result.b2bcnt * (- 10 + safe + eval_result.clear) * p.b2b): !!result.b2bcnt * rate)
                 + result.like * 32
                 ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
-            ) * std::max<double>(0.05, (full_count_ - eval_result.count - result.map_rise * (context_->width() - 1)) / double(full_count_))
-            + (result.max_combo * (result.max_combo - 1) * p.combo) + (result.attack * p.combo)
+            ) * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_))
+            + (result.max_combo * (result.max_combo - 1) * p.combo)
             - result.death * 999999999.0
             );
         result.board_fill_prev = result.board_fill;

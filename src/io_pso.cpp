@@ -15,7 +15,7 @@
 #include "tetris_core.h"
 #include "search_tspin.h"
 #include "ai_zzz.h"
-#include "rule_srs.h"
+#include "rule_io.h"
 #include "sb_tree.h"
 #include "ai_setting.h"
 
@@ -135,7 +135,7 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
 
 struct test_ai
 {
-    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> ai;
+    m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> ai;
     m_tetris::TetrisMap map;
     std::mt19937 r_next, r_garbage;
     size_t next_length;
@@ -158,7 +158,7 @@ struct test_ai
     int total_attack;
     int total_receive;
 
-    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> &global_ai)
+    test_ai(m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> &global_ai)
         : ai(global_ai.context())
     {
     }
@@ -218,6 +218,8 @@ struct test_ai
         ai.ai_config()->table_max = combo_table_max;
         ai.status()->death = 0;
         ai.status()->combo = combo;
+        ai.status()->max_combo = 0;
+        ai.status()->max_attack = 0;
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->map_rise = 0;
         ai.status()->pc = false;
@@ -637,16 +639,21 @@ int main(int argc, char const *argv[])
     {
         ai_zzz::IO_v08::Param p;
 
+        v(p.base       , 1000,   8);
         v(p.roof       , 1000,   8);
         v(p.col_trans  , 1000,   8);
         v(p.row_trans  , 1000,   8);
         v(p.hole_count , 1000,   8);
         v(p.hole_line  , 1000,   8);
+        v(p.clear_width,  100,   8);
         v(p.well_depth , 1000,   8);
         v(p.hole_depth , 1000,   8);
-        v(p.safe       , 1000,   8);
+        v(p.wide_2,      1000,   8);
+        v(p.wide_3,      1000,   8);
+        v(p.wide_4,      1000,   8);
+        v(p.safe       ,  100,   2);
         v(p.b2b        , 1000,   8);
-        v(p.attack     , 1000,   8);
+        v(p.attack     ,  100,   2);
         v(p.hold_t     ,  100,   2);
         v(p.hold_i     ,  100,   2);
         v(p.waste_t    ,  100,   2);
@@ -654,15 +661,17 @@ int main(int argc, char const *argv[])
         v(p.clear_1    , 1000,   8);
         v(p.clear_2    , 1000,   8);
         v(p.clear_3    , 1000,   8);
-        v(p.clear_4    ,  100, 0.5);
-        v(p.t2_slot    ,  100, 0.5);
-        v(p.t3_slot    ,  100, 0.5);
+        v(p.clear_4    , 1000,   8);
+        v(p.t2_slot    ,  100,   2);
+        v(p.t3_slot    ,  100,   2);
         v(p.tspin_mini ,  100,   2);
         v(p.tspin_1    ,  100,   2);
         v(p.tspin_2    ,  100,   2);
         v(p.tspin_3    ,  100,   2);
         v(p.decision   ,  100,   2);
         v(p.combo      ,  100,   2);
+        v(p.focus      , 1000,   8);
+        v(p.counter    , 1000,   8);
         v(p.ratio      ,   10, 0.5);
 
         if (rank_table.empty())
@@ -671,7 +680,7 @@ int main(int argc, char const *argv[])
 
             strncpy(init_node.name, "*default", sizeof init_node.name);
             memset(&init_node.data, 0, sizeof init_node.data);
-            init_node.data.param = p;
+            //init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
 	}
@@ -687,7 +696,7 @@ int main(int argc, char const *argv[])
     }
 
     std::vector<std::thread> threads;
-    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> global_ai;
+    m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> global_ai;
     global_ai.prepare(10, 40);
 
     for (size_t i = 1; i <= count; ++i)
@@ -837,7 +846,7 @@ int main(int argc, char const *argv[])
                 //     std::swap(round_ms_min, round_ms_max);
                 // }
                 // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
-                size_t round_ms = 20;
+                size_t round_ms = 0;
                 size_t round_count = 3600;
                 ai1.init(m1->data.data, pso_cfg, round_ms);
                 ai2.init(m2->data.data, pso_cfg, round_ms);
@@ -959,7 +968,8 @@ int main(int argc, char const *argv[])
         printf(
             "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
             " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-            " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+            " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+            " %.9f, %.9f, %.9f, %.9f}\n"
             , node->data.data.x[ 0]
             , node->data.data.x[ 1]
             , node->data.data.x[ 2]
@@ -987,6 +997,13 @@ int main(int argc, char const *argv[])
             , node->data.data.x[24]
             , node->data.data.x[25]
             , node->data.data.x[26]
+            , node->data.data.x[27]
+            , node->data.data.x[28]
+            , node->data.data.x[29]
+            , node->data.data.x[30]
+            , node->data.data.x[31]
+            , node->data.data.x[32]
+            , node->data.data.x[33]
         );
         rank_table_lock.unlock();
     };
@@ -1109,16 +1126,86 @@ int main(int argc, char const *argv[])
         {
             node = &rank_table.front()->data.data;
         }
-        if (token[1] == "bat")
+        if (token[1] == "config")
         {
-            printf("best cpp only\n");
+            printf(
+                "double base = %.9f;\n"
+                "double roof = %.9f;\n"
+                "double col_trans = %.9f;\n"
+                "double row_trans = %.9f;\n"
+                "double hole_count = %.9f;\n"
+                "double hole_line = %.9f;\n"
+                "double clear_width = %.9f;\n"
+                "double well_depth = %.9f;\n"
+                "double hole_depth = %.9f;\n"
+                "double wide_2 = %.9f;\n"
+                "double wide_3 = %.9f;\n"
+                "double wide_4 = %.9f;\n"
+                "double safe = %.9f;\n"
+                "double b2b = %.9f;\n"
+                "double attack = %.9f;\n"
+                "double hold_t = %.9f;\n"
+                "double hold_i = %.9f;\n"
+                "double waste_t = %.9f;\n"
+                "double waste_i = %.9f;\n"
+                "double clear_1 = %.9f;\n"
+                "double clear_2 = %.9f;\n"
+                "double clear_3 = %.9f;\n"
+                "double clear_4 = %.9f;\n"
+                "double t2_slot = %.9f;\n"
+                "double t3_slot = %.9f;\n"
+                "double tspin_mini = %.9f;\n"
+                "double tspin_1 = %.9f;\n"
+                "double tspin_2 = %.9f;\n"
+                "double tspin_3 = %.9f;\n"
+                "double decision = %.9f;\n"
+                "double combo = %.9f;\n"
+                "double focus = %.9f;\n"
+                "double counter = %.9f;\n"
+                "double ratio = %.9f;\n"
+                , node->p[0]
+                , node->p[1]
+                , node->p[2]
+                , node->p[3]
+                , node->p[4]
+                , node->p[5]
+                , node->p[6]
+                , node->p[7]
+                , node->p[8]
+                , node->p[9]
+                , node->p[10]
+                , node->p[11]
+                , node->p[12]
+                , node->p[13]
+                , node->p[14]
+                , node->p[15]
+                , node->p[16]
+                , node->p[17]
+                , node->p[18]
+                , node->p[19]
+                , node->p[20]
+                , node->p[21]
+                , node->p[22]
+                , node->p[23]
+                , node->p[24]
+                , node->p[25]
+                , node->p[26]
+                , node->p[27]
+                , node->p[28]
+                , node->p[29]
+                , node->p[30]
+                , node->p[31]
+                , node->p[32]
+                , node->p[33]
+            );
         }
         else if (token[1] == "cpp")
         {
             printf(
                 "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
                 " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+                " %.9f, %.9f, %.9f, %.9f}\n"
                 , node->p[ 0]
                 , node->p[ 1]
                 , node->p[ 2]
@@ -1146,6 +1233,13 @@ int main(int argc, char const *argv[])
                 , node->p[24]
                 , node->p[25]
                 , node->p[26]
+                , node->p[27]
+                , node->p[28]
+                , node->p[29]
+                , node->p[30]
+                , node->p[31]
+                , node->p[32]
+                , node->p[33]
             );
         }
         rank_table_lock.unlock();

@@ -26,7 +26,7 @@
     <ClInclude Include="..\tetris_ai_runner\src\chash_set.h" />
     <ClInclude Include="..\tetris_ai_runner\src\integer_utils.h" />
     <ClInclude Include="..\tetris_ai_runner\src\random.h" />
-    <ClInclude Include="..\tetris_ai_runner\src\rule_srs.h" />
+    <ClInclude Include="..\tetris_ai_runner\src\rule_io.h" />
     <ClInclude Include="..\tetris_ai_runner\src\sb_tree.h" />
     <ClInclude Include="..\tetris_ai_runner\src\search_tspin.h" />
     <ClInclude Include="..\tetris_ai_runner\src\tetris_core.h" />
@@ -39,7 +39,7 @@
     <ClCompile Include="..\tetris_ai_runner\src\ai_zzz.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\integer_utils.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\random.cpp" />
-    <ClCompile Include="..\tetris_ai_runner\src\rule_srs.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\rule_io.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\search_tspin.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\tetris_core.cpp" />
     <ClCompile Include="src\io_pso.cpp" />

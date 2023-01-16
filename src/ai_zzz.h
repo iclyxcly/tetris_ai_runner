@@ -195,13 +195,18 @@ namespace ai_zzz
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Param {
+            double base = 0;
             double roof = 128;
             double col_trans = 160;
             double row_trans = 160;
-            double hole_count = 80;
+            double hole_count = 256;
             double hole_line = 380;
+            double clear_width = 0;
             double well_depth = 100;
             double hole_depth = 40;
+            double wide_2 = 0;
+            double wide_3 = 0;
+            double wide_4 = 0;
             double safe = 0;
             double b2b = 128;
             double attack = 1;
@@ -221,6 +226,8 @@ namespace ai_zzz
             double tspin_3 = 12;
             double decision = 6; // lower=b2b, higher=combo
             double combo = 30;
+            double focus = 0;
+            double counter = 0;
             double ratio = 1.5;
         };
         struct Config
@@ -241,6 +248,7 @@ namespace ai_zzz
         struct Status
         {
             int max_combo;
+            int max_attack;
             int death;
             int combo;
             int attack;

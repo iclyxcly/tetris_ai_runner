@@ -1604,7 +1604,7 @@ namespace ai_zzz
 
     std::string IO_v08::ai_name() const
     {
-        return "ZZZ TOJ v0.8 IO VER";
+        return "ZZZ TOJ v0.8 PLUS";
     }
 
     IO_v08::Result IO_v08::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
@@ -1638,6 +1638,9 @@ namespace ai_zzz
             int HoleDepth;
             int WellDepth;
 
+            int Wide[31];
+            int ClearWidth;
+
             int HoleNum[32];
             int WellNum[32];
 
@@ -1650,6 +1653,8 @@ namespace ai_zzz
             int ClearWidth;
         } a[40];
 
+        int WideCount = map.width - 1;
+
         for (int y = map.roof - 1; y >= 0; --y)
         {
             v.LineCoverBits |= map.row[y];
@@ -1658,6 +1663,7 @@ namespace ai_zzz
             {
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
+                v.HoleCount += ZZZ_BitCount(LineHole);
                 for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -1665,6 +1671,7 @@ namespace ai_zzz
                     {
                         break;
                     }
+                    v.ClearWidth += (map.width - ZZZ_BitCount(map.row[hy])) * hy;
                     a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
                 }
                 ++v.HolePosyIndex;
@@ -1708,6 +1715,11 @@ namespace ai_zzz
             {
                 v.WellDepth += ++v.WellNum[width_m1];
             }
+            WideCount = std::min<int>(WideCount, map.width - ZZZ_BitCount(v.LineCoverBits));
+            if (v.HoleLine == 0)
+            {
+                ++v.Wide[WideCount];
+            }
         }
         auto& p = config_->param;
         Result result;
@@ -1717,8 +1729,12 @@ namespace ai_zzz
             - RowTrans * p.row_trans
             - v.HoleCount * p.hole_count
             - v.HoleLine * p.hole_line
+            - v.ClearWidth * p.clear_width
             - v.WellDepth * p.well_depth
             - v.HoleDepth * p.hole_depth
+            - v.Wide[2] * p.wide_2
+            - v.Wide[3] * p.wide_3
+            - v.Wide[4] * p.wide_4
             );
         double rate = 32, mul = 1.0 / 4;
         for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
@@ -1906,12 +1922,13 @@ namespace ai_zzz
             result.combo = 0;
             if (status.under_attack > 0)
             {
+                result.like += status.under_attack * p.counter;
                 result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
                 result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
-                result.like += (node->status.t == 'I') * p.waste_i;
-                result.like += (node->status.t == 'T') * p.waste_t;
                 result.under_attack = result.under_attack > GARBAGE_CAP ? result.under_attack - GARBAGE_CAP : 0;
             }
+            result.like += (node->status.t == 'I') * p.waste_i;
+            result.like += (node->status.t == 'T') * p.waste_t;
             break;
         case 1:
             if (node.type == TSpinType::TSpinMini)
@@ -2039,7 +2056,8 @@ namespace ai_zzz
             break;
         }
         safe += eval_result.clear - result.map_rise;
-        if (safe <= 0 || node->row + result.map_rise - eval_result.clear >= 20)
+        double field = eval_result.value * double(40 - safe) / 20;
+        if (!safe || node->row + result.map_rise - eval_result.clear >= 20)
             result.death = 1;
         result.like += result.attack;
         int ua = result.under_attack;
@@ -2049,14 +2067,15 @@ namespace ai_zzz
         double rate = (1. / (depth + 1)) + 3;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
-            + (((result.attack * 256 * rate) * p.attack)
-                + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
-                + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot)
-                + (safe >= 10 ? (result.b2bcnt * (- 10 + safe + eval_result.clear) * p.b2b): !!result.b2bcnt * rate)
-                + result.like * 32
-                ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
-            ) * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_))
-            + (result.max_combo * (result.max_combo - 1) * p.combo)
+            + ((result.attack * 256 * rate) * p.attack)
+            + eval_result.t2_value * (t_expect < 2 ? (1 - t_expect) * 256 : 128) * p.t2_slot
+            + ((safe >= 12 ? eval_result.t3_value * (t_expect < 1 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot)
+            + (safe >= 10 ? (result.b2bcnt * (-10 + safe + result.attack + eval_result.clear) * p.b2b) : !!result.b2bcnt * rate)
+            + (result.like * 32)
+            + (result.max_attack * result.attack * p.focus)
+            + (result.max_combo * result.combo * p.combo)
+            ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
+            + field * p.base
             - result.death * 999999999.0
             );
         result.board_fill_prev = result.board_fill;

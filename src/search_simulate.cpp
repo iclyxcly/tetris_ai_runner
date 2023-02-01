@@ -41,7 +41,7 @@ namespace search_simulate
         node_search_.push_back(node);
         node_mark_.set(node, nullptr, '\0');
         size_t cache_index = 0;
-        if(node->land_point != nullptr && node->low >= map.roof && land_point->open(map))
+        if(node->land_point != nullptr && node->low >= map.roof && land_point->open(map, node))
         {
             do
             {
@@ -49,7 +49,7 @@ namespace search_simulate
                 {
                     TetrisNode const *node = node_search_[cache_index];
                     //x
-                    if(node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map))
+                    if(node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map, node))
                     {
                         if(node->rotate_opposite->drop(map)->index_filtered == index)
                         {
@@ -61,7 +61,7 @@ namespace search_simulate
                         }
                     }
                     //z
-                    if(node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map))
+                    if(node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map, node))
                     {
                         if(node->rotate_counterclockwise->drop(map)->index_filtered == index)
                         {
@@ -73,7 +73,7 @@ namespace search_simulate
                         }
                     }
                     //c
-                    if(node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map))
+                    if(node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map, node))
                     {
                         if(node->rotate_clockwise->drop(map)->index_filtered == index)
                         {
@@ -85,7 +85,7 @@ namespace search_simulate
                         }
                     }
                     //l
-                    if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
+                    if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map, node))
                     {
                         if(node->move_left->drop(map)->index_filtered == index)
                         {
@@ -97,7 +97,7 @@ namespace search_simulate
                         }
                     }
                     //r
-                    if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map))
+                    if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map, node))
                     {
                         if(node->move_right->drop(map)->index_filtered == index)
                         {
@@ -109,10 +109,10 @@ namespace search_simulate
                         }
                     }
                     //L
-                    if(node->move_left && node->move_left->check(map))
+                    if(node->move_left && node->move_left->check(map, node))
                     {
                         TetrisNode const *node_L = node->move_left;
-                        while(node_L->move_left && node_L->move_left->check(map))
+                        while(node_L->move_left && node_L->move_left->check(map, node))
                         {
                             node_L = node_L->move_left;
                         }
@@ -129,10 +129,10 @@ namespace search_simulate
                         }
                     }
                     //R
-                    if(node->move_right && node->move_right->check(map))
+                    if(node->move_right && node->move_right->check(map, node))
                     {
                         TetrisNode const *node_R = node->move_right;
-                        while(node_R->move_right && node_R->move_right->check(map))
+                        while(node_R->move_right && node_R->move_right->check(map, node))
                         {
                             node_R = node_R->move_right;
                         }
@@ -160,7 +160,7 @@ namespace search_simulate
                 {
                     TetrisNode const *node = node_search_[cache_index];
                     //x
-                    if(node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map))
+                    if(node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map, node))
                     {
                         if(node->rotate_opposite->index_filtered == index)
                         {
@@ -172,7 +172,7 @@ namespace search_simulate
                         }
                     }
                     //z
-                    if(node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map))
+                    if(node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map, node))
                     {
                         if(node->rotate_counterclockwise->index_filtered == index)
                         {
@@ -184,7 +184,7 @@ namespace search_simulate
                         }
                     }
                     //c
-                    if(node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map))
+                    if(node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map, node))
                     {
                         if(node->rotate_clockwise->index_filtered == index)
                         {
@@ -196,7 +196,7 @@ namespace search_simulate
                         }
                     }
                     //l
-                    if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
+                    if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map, node))
                     {
                         if(node->move_left->index_filtered == index)
                         {
@@ -208,7 +208,7 @@ namespace search_simulate
                         }
                     }
                     //r
-                    if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map))
+                    if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map, node))
                     {
                         if(node->move_right->index_filtered == index)
                         {
@@ -220,10 +220,10 @@ namespace search_simulate
                         }
                     }
                     //L
-                    if(node->move_left && node->move_left->check(map))
+                    if(node->move_left && node->move_left->check(map, node))
                     {
                         TetrisNode const *node_L = node->move_left;
-                        while(node_L->move_left && node_L->move_left->check(map))
+                        while(node_L->move_left && node_L->move_left->check(map, node))
                         {
                             node_L = node_L->move_left;
                         }
@@ -240,10 +240,10 @@ namespace search_simulate
                         }
                     }
                     //R
-                    if(node->move_right && node->move_right->check(map))
+                    if(node->move_right && node->move_right->check(map, node))
                     {
                         TetrisNode const *node_R = node->move_right;
-                        while(node_R->move_right && node_R->move_right->check(map))
+                        while(node_R->move_right && node_R->move_right->check(map, node))
                         {
                             node_R = node_R->move_right;
                         }
@@ -260,7 +260,7 @@ namespace search_simulate
                         }
                     }
                     //d
-                    if(node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map))
+                    if(node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map, node))
                     {
                         if(node->move_down->index_filtered == index)
                         {
@@ -294,7 +294,7 @@ namespace search_simulate
     std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
-        if(!node->check(map))
+        if(!node->check(map, node))
         {
             return &land_point_cache_;
         }
@@ -334,10 +334,10 @@ namespace search_simulate
                         }
                         if(low_node->status.x > high_node->status.x)
                         {
-                            if(low_node->move_left && low_node->move_left->check(map))
+                            if(low_node->move_left && low_node->move_left->check(map, node))
                             {
                                 TetrisNode const *node_check = low_node->move_left;
-                                while(node_check->move_left && node_check->move_left->check(map))
+                                while(node_check->move_left && node_check->move_left->check(map, node))
                                 {
                                     node_check = node_check->move_left;
                                 }
@@ -350,10 +350,10 @@ namespace search_simulate
                         }
                         else
                         {
-                            if(low_node->move_right && low_node->move_right->check(map))
+                            if(low_node->move_right && low_node->move_right->check(map, node))
                             {
                                 TetrisNode const *node_check = low_node->move_right;
-                                while(node_check->move_right && node_check->move_right->check(map))
+                                while(node_check->move_right && node_check->move_right->check(map, node))
                                 {
                                     node_check = node_check->move_right;
                                 }
@@ -380,7 +380,7 @@ namespace search_simulate
                 for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
                 {
                     node = node_search_[cache_index];
-                    if(!node->move_down || !node->move_down->check(map))
+                    if(!node->move_down || !node->move_down->check(map, node))
                     {
                         if(node_mark_filtered_.mark(node))
                         {
@@ -388,32 +388,32 @@ namespace search_simulate
                         }
                     }
                     //x
-                    if(node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && node->rotate_opposite->check(map))
+                    if(node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && node->rotate_opposite->check(map, node))
                     {
                         node_search_.push_back(node->rotate_opposite);
                     }
                     //z
-                    if(node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && node->rotate_counterclockwise->check(map))
+                    if(node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && node->rotate_counterclockwise->check(map, node))
                     {
                         node_search_.push_back(node->rotate_counterclockwise);
                     }
                     //c
-                    if(node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && node->rotate_clockwise->check(map))
+                    if(node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && node->rotate_clockwise->check(map, node))
                     {
                         node_search_.push_back(node->rotate_clockwise);
                     }
                     //l
-                    if(node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map))
+                    if(node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map, node))
                     {
                         node_search_.push_back(node->move_left);
                     }
                     //r
-                    if(node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map))
+                    if(node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map, node))
                     {
                         node_search_.push_back(node->move_right);
                     }
                     //d
-                    if(node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map))
+                    if(node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
                     {
                         node_search_.push_back(node->move_down);
                     }

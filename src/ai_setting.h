@@ -1,4 +1,4 @@
-#define USE_MISAMINO 1 // needs to be enabled to run pso/unmodified zzztetr, needs to be disabled to run zzztetr
+#define USE_MISAMINO 1 // needs to be enabled to run unmodified zzztetr, needs to be disabled to run zzztetr
 #define USE_THREAD 1
 #define USE_PC 0
 #define GARBAGE_MARGIN_TIME 180000

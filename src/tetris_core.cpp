@@ -180,7 +180,7 @@ namespace m_tetris
         else
         {
             TetrisNode const *node = this;
-            while(node->move_down != nullptr && node->move_down->check(map))
+            while(node->move_down != nullptr && node->move_down->check(map, node))
             {
                 node = node->move_down;
             }

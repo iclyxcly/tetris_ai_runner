@@ -64,3 +64,5 @@ Icon
 *.xml
 *.txt
 *.sarif
+settings.ini
+misamino.cfg

@@ -234,13 +234,13 @@ namespace m_tetris
         TetrisNode const* move_down_multi[max_height];
 
         //检查当前块是否能够合并入场景
-        bool check(TetrisMap const& map) const;
+        bool check(TetrisMap const& map, TetrisNode const* node) const;
         //检查当前块是否能够合并入场景
         bool check(TetrisMapSnap const& snap) const;
         //构建场景快照
         void build_snap(TetrisMap const& map, TetrisContext const* context, TetrisMapSnap& snap) const;
         //检查当前块是否是露天的
-        bool open(TetrisMap const& map) const;
+        bool open(TetrisMap const& map, TetrisNode const* node) const;
         //当前块合并入场景,同时更新场景数据
         size_t attach(TetrisContext const* context, TetrisMap& map) const;
         //探测合并后消的最低行
@@ -2057,7 +2057,7 @@ namespace m_tetris
         RunResult run(TetrisMap const& map, TetrisNode const* node, char const* next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            if (shared_context_ == nullptr || node == nullptr || !node->check(map))
+            if (shared_context_ == nullptr || node == nullptr || !node->check(map, node))
             {
                 return RunResult();
             }
@@ -2077,7 +2077,7 @@ namespace m_tetris
         RunResult run_hold(TetrisMap const& map, TetrisNode const* node, char hold, bool hold_free, char const* next, size_t next_length, time_t limit = 100)
         {
             using namespace std::chrono;
-            if (shared_context_ == nullptr || node == nullptr || !node->check(map))
+            if (shared_context_ == nullptr || node == nullptr || !node->check(map, node))
             {
                 return RunResult();
             }
@@ -2338,32 +2338,52 @@ namespace m_tetris
     };
 
 
-    inline bool TetrisNode::check(TetrisMap const& map) const
+    inline bool TetrisNode::check(TetrisMap const& map, TetrisNode const* node) const
     {
-        switch (height)
+        switch (node->status.t)
         {
-        case 4:
-            if (map.row[row + 3] & data[3])
+        case 'O':
+            switch (height)
             {
-                return false;
+            default:
+                assert(0);
+            case 4:
+                return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2]) | (map.row[row + 3] & data[3])) == 0;
+            case 3:
+                return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1]) | (map.row[row + 2] & data[2])) == 0;
+            case 2:
+                return ((map.row[row] & data[0]) | (map.row[row + 1] & data[1])) == 0;
+            case 1:
+                return ((map.row[row] & data[0])) == 0;
             }
-        case 3:
-            if (map.row[row + 2] & data[2])
+            break;
+        default:
+            switch (height)
             {
-                return false;
+            case 4:
+                if (map.row[row + 3] & data[3])
+                {
+                    return false;
+                }
+            case 3:
+                if (map.row[row + 2] & data[2])
+                {
+                    return false;
+                }
+            case 2:
+                if (map.row[row + 1] & data[1])
+                {
+                    return false;
+                }
+            case 1:
+                if (map.row[row] & data[0])
+                {
+                    return false;
+                }
             }
-        case 2:
-            if (map.row[row + 1] & data[1])
-            {
-                return false;
-            }
-        case 1:
-            if (map.row[row] & data[0])
-            {
-                return false;
-            }
+            return true;
+            break;
         }
-        return true;
     }
 
     inline bool TetrisNode::check(TetrisMapSnap const& snap) const
@@ -2372,32 +2392,52 @@ namespace m_tetris
     }
 
 
-    inline bool TetrisNode::open(TetrisMap const& map) const
+    inline bool TetrisNode::open(TetrisMap const& map, TetrisNode const *node) const
     {
-        switch (width)
+        switch (node->status.t)
         {
-        case 4:
-            if (bottom[3] < map.top[col + 3])
+        case 'O':
+            switch (width)
             {
-                return false;
+            default:
+                assert(0);
+            case 4:
+                return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1]) & (bottom[2] < map.top[col + 2]) & (bottom[3] < map.top[col + 3])) == 0;
+            case 3:
+                return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1]) & (bottom[2] < map.top[col + 2])) == 0;
+            case 2:
+                return ((bottom[0] < map.top[col]) & (bottom[1] < map.top[col + 1])) == 0;
+            case 1:
+                return ((bottom[0] < map.top[col])) == 0;
             }
-        case 3:
-            if (bottom[2] < map.top[col + 2])
+            break;
+        default:
+            switch (width)
             {
-                return false;
+            case 4:
+                if (bottom[3] < map.top[col + 3])
+                {
+                    return false;
+                }
+            case 3:
+                if (bottom[2] < map.top[col + 2])
+                {
+                    return false;
+                }
+            case 2:
+                if (bottom[1] < map.top[col + 1])
+                {
+                    return false;
+                }
+            case 1:
+                if (bottom[0] < map.top[col])
+                {
+                    return false;
+                }
             }
-        case 2:
-            if (bottom[1] < map.top[col + 1])
-            {
-                return false;
-            }
-        case 1:
-            if (bottom[0] < map.top[col])
-            {
-                return false;
-            }
+            return true;
+            break;
         }
-        return true;
     }
 }
 

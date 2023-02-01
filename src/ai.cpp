@@ -94,8 +94,8 @@ extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[
     }
     return 0;
 }
-#define USE_V08 0
-#define USE_THREAD 0
+#define USE_V08 1
+#define USE_THREAD 1
 #define USE_PC 0
 
 #if !USE_V08
@@ -217,9 +217,12 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.memory_limit(256ull << 20);
 #if !USE_V08
     srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
-    // srs_ai.ai_config()->param = { 36.118271157, 202.203495764, 200.737909778, 170.781301529, 277.040476787, 247.783175303, 3.729165582, -55.949272093, -30.745551429, 11.519702458, 3.400517468, 112.960485307, 171.678755503, -0.004778355, -0.111297405, -22.246305463, -7.869832591, -56.390368723, -70.581632887, -63.004355360, -1.839383519, 1.285416709, -0.143928932, -3.284161895, 5.967192336, 3.808250892, 3.238022919, 83.284536559, 0.309568618 };
-    srs_ai.ai_config()->param = {10.507166148, 7.539860726, 13.048099725, 13.388476179, 6.728747539, 9.476881786, 0.258534525, -0.108269503, 4.394241496, -4.892359035, 0.049148374, 1.586714505, 8.885878229, -0.006001836, -0.004336234, -2.021765056, -0.951446468, -1.145468832, -1.515758227, -0.612910192, -0.476031978, 0.009596827, -0.399212013, -0.855819915, -0.418779377, -0.454784178, -1.417493065, 1.050941751, 0.756272086};
-    // srs_ai.ai_config()->param = { 9.751914367, 6.771584511, 13.984778367, 20.368342456, 6.585961649, 20.332921226, 0.356373036, -0.386894461, -3.709699649, -1.675111576, 0.023687142, 10.297308519, 8.682478710, 0.001170853, 0.001022283, -1.241649334, -0.733500168, -1.611358148, -1.038454063, -0.445952144, -0.207823940, 0.000092385, -0.797795083, -6.153751596, -1.118142645, -0.641180767, -0.193865538, 0.505326328, 3.467200242 };
+    //NAME: init_1
+    //GEN: 2139
+    //SCORE: 107.38
+    //APL: 1.14
+    //APP: 0.65
+    srs_ai.ai_config()->param = { 28.701623013737663114852693980, 295.279853398865384406235534698, 377.682867211490929548745043576, 194.578524021247972086712252349, 358.517545721265832980861887336, 65.275259254247743001542403363, 5.637687051561649731468151003, -262.745777531149030892265727744, -129.939368423034323996034800075, -88.102622536349585402604134288, 31.397345004664671819227805827, 504.624310570664931674400577322, 164.528490037548010604950832203, 0.283101085502819316275235906, -0.074027859430396358852988214, -28.574672038323836176232362050, -13.843036736670310204999623238, -27.359081303948350694099644898, -59.981404167144120265220408328, -47.693497695867975494365964551, 13.285092122100508049697964452, -0.084367316356987825942681525, 0.442901855701022972855440685, -5.413297620552509847868805082, 10.537138714651431925517499621, -0.506376435172552707975057729, 4.699163025452855357855241891, 92.041294278090987290852353908, 0.279778139865527575302905916 };
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     if (srs_ai.status()->under_attack != upcomeAtt)
@@ -234,11 +237,18 @@ extern "C" DECLSPEC_EXPORT char *__cdecl TetrisAI(int overfield[], int field[], 
     srs_ai.status()->value = 0;
     ai_zzz::TOJ::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
 #else
+    //NAME: init_3
+    //GEN: 198
+    //SCORE: 113.19
+    //APL: 0.99
+    //APP: 0.68
+    srs_ai.ai_config()->param = { 160.243384434415133910079021007, 156.539465058019032994707231410, 160.605627401933759301755344495, 163.127975560301422319753328338, 155.564294819757776622282108292, 152.430622736739081801715656184, 166.645372979675357782980427146, 164.373335634876582389551913366, 261.998040047964082077669445425, 30.121015999186727896130832960, 5.460668455963028300459427555, 2.070224220332052667004063551, -0.187748010973191881145538673, -1.438471598779677229629214708, -0.390319790142479028371980121, -1.128847571557698215016785070, 0.726473838348016598409628841, -0.659246515903566310257133409, 1.589063943142735135793941481, 0.259838462574848882979949849, 0.778246814382433593770826974, 0.791063271826942471243171440, 7.351630369119032337721364456, 12.957728502535514891746970534, 39.927561008107588236271112692, 1.186079224627106132317067022 };
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->max_attack = 0;
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = combo;
     srs_ai.status()->attack = 0;
+    srs_ai.status()->combo_attack = 0;
     if (srs_ai.status()->under_attack != upcomeAtt)
     {
         srs_ai.update();
@@ -557,19 +567,19 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     if (target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
-        node->open(map);
+        node->open(map, node);
         for (char c : ai_path)
         {
             switch (c)
             {
             case 'L':
-                while (node->move_left != nullptr && node->move_left->check(map))
+                while (node->move_left != nullptr && node->move_left->check(map, node))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'R':
-                while (node->move_right != nullptr && node->move_right->check(map))
+                while (node->move_right != nullptr && node->move_right->check(map, node))
                 {
                     node = node->move_right;
                 }
@@ -578,13 +588,13 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 node = node->drop(map);
                 break;
             case 'l':
-                if (node->move_left != nullptr && node->move_left->check(map))
+                if (node->move_left != nullptr && node->move_left->check(map, node))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'r':
-                if (node->move_right != nullptr && node->move_right->check(map))
+                if (node->move_right != nullptr && node->move_right->check(map, node))
                 {
                     node = node->move_right;
                 }
@@ -595,7 +605,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             node = wall_kick_node;
                             break;
@@ -612,7 +622,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             node = wall_kick_node;
                             break;
@@ -629,7 +639,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             node = wall_kick_node;
                             break;

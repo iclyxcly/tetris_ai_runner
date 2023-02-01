@@ -25,6 +25,7 @@
 #include <unistd.h>
 #endif
 
+#define USE_V08 1
 
 namespace zzz
 {
@@ -83,7 +84,11 @@ union pso_data
         std::array<double, 64> p;
         std::array<double, 64> v;
     };
+#if !USE_V08
     ai_zzz::TOJ::Param param;
+#else
+    ai_zzz::TOJ_v08::Param param;
+#endif
 };
 
 struct pso_config_element
@@ -134,7 +139,11 @@ void pso_logic(pso_config const &config, pso_data const &best, pso_data &item, s
 
 struct test_ai
 {
+#if !USE_V08
     m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> ai;
+#else
+    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search> ai;
+#endif
     m_tetris::TetrisMap map;
     std::mt19937 r_next, r_garbage;
     size_t next_length;
@@ -145,6 +154,7 @@ struct test_ai
     std::deque<int> recv_attack;
     int send_attack;
     int combo;
+    int max_combo;
     char hold;
     bool b2b;
     bool dead;
@@ -153,7 +163,11 @@ struct test_ai
     int total_attack;
     int total_receive;
 
+#if !USE_V08
     test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> &global_ai, int const *_combo_table, int _combo_table_max)
+#else
+    test_ai(m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search>& global_ai, int const* _combo_table, int _combo_table_max)
+#endif
         : ai(global_ai.context())
         , combo_table(_combo_table)
         , combo_table_max(_combo_table_max)
@@ -170,6 +184,7 @@ struct test_ai
         recv_attack.clear();
         send_attack = 0;
         combo = 0;
+        max_combo = 0;
         hold = ' ';
         b2b = false;
         dead = false;
@@ -208,16 +223,23 @@ struct test_ai
         ai.search_config()->last_rotate = false;
         ai.ai_config()->table = combo_table;
         ai.ai_config()->table_max = combo_table_max;
+#if !USE_V08
         ai.ai_config()->safe = ai.ai()->get_safe(map, next.front());
+        ai.status()->acc_value = 0;
+        ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
+#else
+        ai.status()->attack = 0;
+        ai.status()->combo_attack = 0;
+        ai.status()->max_attack = 0;
+        ai.status()->max_combo = 0;
+#endif
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->under_attack = std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
         ai.status()->map_rise = 0;
         ai.status()->b2b = !!b2b;
-        ai.status()->acc_value = 0;
         ai.status()->like = 0;
         ai.status()->value = 0;
-        ai_zzz::TOJ::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 
         char current = next.front();
         auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);
@@ -247,6 +269,7 @@ struct test_ai
             combo = 0;
             break;
         case 1:
+#if !USE_V08
             if (result.target.type == ai_zzz::TOJ::TSpinType::TSpinMini)
             {
                 attack += 1 + b2b;
@@ -289,6 +312,50 @@ struct test_ai
             }
             attack += get_combo_attack(++combo);
             break;
+#else
+            if (result.target.type == ai_zzz::TOJ_v08::TSpinType::TSpinMini)
+            {
+                attack += 1 + b2b;
+                b2b = 1;
+            }
+            else if (result.target.type == ai_zzz::TOJ_v08::TSpinType::TSpin)
+            {
+                attack += 2 + b2b;
+                b2b = 1;
+            }
+            else
+            {
+                b2b = 0;
+            }
+            attack += get_combo_attack(++combo);
+            break;
+        case 2:
+            if (result.target.type != ai_zzz::TOJ_v08::TSpinType::None)
+            {
+                attack += 4 + b2b;
+                b2b = 1;
+            }
+            else
+            {
+                attack += 1;
+                b2b = 0;
+            }
+            attack += get_combo_attack(++combo);
+            break;
+        case 3:
+            if (result.target.type != ai_zzz::TOJ_v08::TSpinType::None)
+            {
+                attack += 6 + b2b * 2;
+                b2b = 1;
+            }
+            else
+            {
+                attack += 2;
+                b2b = 0;
+            }
+            attack += get_combo_attack(++combo);
+            break;
+#endif
         case 4:
             attack += get_combo_attack(++combo) + 4 + b2b;
             b2b = 1;
@@ -298,6 +365,7 @@ struct test_ai
         {
             attack += 6;
         }
+        max_combo = std::max(combo, max_combo);
         ++total_block;
         total_attack += attack;
         send_attack = attack;
@@ -386,25 +454,6 @@ struct test_ai
     }
 };
 
-
-double elo_init()
-{
-    return 1500;
-}
-double elo_rate(double const &self_score, double const &other_score)
-{
-    return 1 / (1 + std::pow(10, -(self_score - other_score) / 400));
-}
-double elo_get_k(int curr, int max)
-{
-    return 20 * (max - curr) / max + 4;
-}
-double elo_calc(double const &self_score, double const &other_score, double const &win, int curr, int max)
-{
-    return self_score + elo_get_k(curr, max) * (win - elo_rate(self_score, other_score));
-}
-
-
 struct BaseNode
 {
     BaseNode *parent, *left, *right;
@@ -416,13 +465,23 @@ struct NodeData
 {
     NodeData()
     {
-        score = elo_init();
+        score = 0;
+        total_score = 0;
+        apl = 0;
+        app = 0;
+        total_apl = 0;
+        total_app = 0;
         best = std::numeric_limits<double>::quiet_NaN();
         match = 0;
         gen = 0;
     }
     char name[64];
     double score;
+    double total_score;
+    double apl;
+    double total_apl;
+    double total_app;
+    double app;
     double best;
     uint32_t match;
     uint32_t gen;
@@ -535,8 +594,8 @@ int main(int argc, char const *argv[])
     {
         {}, 1, 1, 0.5, 0.01,
     };
-    size_t elo_max_match = 256;
-    size_t elo_min_match = 128;
+    size_t elo_max_match = std::max<size_t>(node_count * 15, 256);
+    size_t elo_min_match = elo_max_match / 2;
 
     auto v = [&pso_cfg](double v, double r, double s)
     {
@@ -549,6 +608,7 @@ int main(int argc, char const *argv[])
     std::mt19937 mt;
 
     {
+#if !USE_V08
         ai_zzz::TOJ::Param p;
 
         v(p.base       ,  100,   2);
@@ -580,6 +640,36 @@ int main(int argc, char const *argv[])
         v(p.tspin_3    ,  100,   2);
         v(p.combo      ,  100,   2);
         v(p.ratio      ,   10, 0.5);
+#else
+        ai_zzz::TOJ_v08::Param p;
+
+        v(p.roof       , 1000,   8);
+        v(p.col_trans  , 1000,   8);
+        v(p.row_trans  , 1000,   8);
+        v(p.hole_count , 1000,   8);
+        v(p.hole_line  , 1000,   8);
+        v(p.well_depth , 1000,   8);
+        v(p.hole_depth , 1000,   8);
+        v(p.b2b        , 1000,   8);
+        v(p.attack     , 1000,   8);
+        v(p.max_attack , 1000,   8);
+        v(p.hold_t     ,  100,   2);
+        v(p.hold_i     ,  100,   2);
+        v(p.waste_t    ,  100,   2);
+        v(p.waste_i    ,  100,   2);
+        v(p.clear_1    ,  100,   2);
+        v(p.clear_2    ,  100,   2);
+        v(p.clear_3    ,  100,   2);
+        v(p.clear_4    ,  100,   2);
+        v(p.t2_slot    ,  100, 0.5);
+        v(p.t3_slot    ,  100, 0.5);
+        v(p.tspin_mini ,  100,   2);
+        v(p.tspin_1    ,  100,   2);
+        v(p.tspin_2    ,  100,   2);
+        v(p.tspin_3    ,  100,   2);
+        v(p.combo      ,  100,   2);
+        v(p.ratio      ,   10, 0.5);
+#endif
 
         if (rank_table.empty())
         {
@@ -587,7 +677,7 @@ int main(int argc, char const *argv[])
 
             strncpy(init_node.name, "*default", sizeof init_node.name);
             memset(&init_node.data, 0, sizeof init_node.data);
-            // init_node.data.param = p;
+            init_node.data.param = p;
             init_node.data.p = init_node.data.x;
             rank_table.insert(new Node(init_node));
 	}
@@ -605,7 +695,11 @@ int main(int argc, char const *argv[])
     std::vector<std::thread> threads;
     int combo_table[] = { 0,0,0,1,1,2,2,3,3,4,4,4,5 };
     int combo_table_max = 13;
+#if !USE_V08
     m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ, search_tspin::Search> global_ai;
+#else
+    m_tetris::TetrisEngine<rule_srs::TetrisRule, ai_zzz::TOJ_v08, search_tspin::Search> global_ai;
+#endif
     global_ai.prepare(10, 40);
 
     for (size_t i = 1; i <= count; ++i)
@@ -669,16 +763,16 @@ int main(int argc, char const *argv[])
                     SetConsoleCursorPosition(hConsole, coordScreen);
 
                     char out[81920] = "";
-                    char box_0[3] = "[]";
-                    char box_1[3] = "  ";
+                    char box_0[3] = "  ";
+                    char box_1[3] = "[]";
 
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                     int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
-                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n"
-                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
-                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
-                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d ATK = %4d BLOCK = %4d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d ATK = %4d BLOCK = %4d NAME = %s\n",
+                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, ai1.total_attack , ai1.total_block, m1->data.name,
+                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, ai2.total_attack , ai2.total_block, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
                     m_tetris::TetrisMap map_copy2 = ai2.map;
                     ai1.node()->attach(ai1.ai.context().get(), map_copy1);
@@ -697,7 +791,7 @@ int main(int argc, char const *argv[])
                         strcat_s(out, "\r\n");
                     }
                     WriteConsoleA(hConsole, out, strlen(out), nullptr, nullptr);
-                    Sleep(333);
+                    Sleep(100);
                 };
 #else
                 auto view_func = [m1, m2, index, &view, &view_index, &rank_table_lock](test_ai const &ai1, test_ai const &ai2)
@@ -723,10 +817,10 @@ int main(int argc, char const *argv[])
                     out[0] = '\0';
                     int up1 = std::accumulate(ai1.recv_attack.begin(), ai1.recv_attack.end(), 0);
                     int up2 = std::accumulate(ai2.recv_attack.begin(), ai2.recv_attack.end(), 0);
-                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n"
-                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d NAME = %s\n",
-                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, m1->data.name,
-                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, m2->data.name);
+                    snprintf(out, sizeof out, "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d ATK = %4d BLOCK = %4d NAME = %s\n"
+                                              "HOLD = %c NEXT = %c%c%c%c%c%c COMBO = %d B2B = %d UP = %2d ATK = %4d BLOCK = %4d NAME = %s\n",
+                        ai1.hold, ai1.next[1], ai1.next[2], ai1.next[3], ai1.next[4], ai1.next[5], ai1.next[6], ai1.combo, ai1.b2b, up1, ai1.total_attack , ai1.total_block, m1->data.name,
+                        ai2.hold, ai2.next[1], ai2.next[2], ai2.next[3], ai2.next[4], ai2.next[5], ai2.next[6], ai2.combo, ai2.b2b, up2, ai2.total_attack , ai2.total_block, m2->data.name);
                     m_tetris::TetrisMap map_copy1 = ai1.map;
                     m_tetris::TetrisMap map_copy2 = ai2.map;
                     ai1.node()->attach(ai1.ai.context().get(), map_copy1);
@@ -755,7 +849,7 @@ int main(int argc, char const *argv[])
                 //     std::swap(round_ms_min, round_ms_max);
                 // }
                 // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
-                size_t round_ms = 20;
+                size_t round_ms = 0;
                 size_t round_count = 3600;
                 ai1.init(m1->data.data, pso_cfg, round_ms);
                 ai2.init(m2->data.data, pso_cfg, round_ms);
@@ -765,64 +859,243 @@ int main(int argc, char const *argv[])
 
                 rank_table.erase(m1);
                 rank_table.erase(m2);
-                bool handle_elo_1;
-                bool handle_elo_2;
-                if ((m1->data.match > elo_min_match) == (m2->data.match > elo_min_match))
-                {
-                    handle_elo_1 = true;
-                    handle_elo_2 = true;
-                }
-                else
-                {
-                    handle_elo_1 = m2->data.match > elo_min_match;
-                    handle_elo_2 = !handle_elo_1;
-                }
+                static double best_ai_score;
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
-                double ai1_apl = ai1.total_clear == 0 ? 0. : 1. * ai1.total_attack / ai1.total_clear;
-                double ai2_apl = ai2.total_clear == 0 ? 0. : 1. * ai2.total_attack / ai2.total_clear;
-                int ai1_win = ai2.dead * 2 + (ai1_apl > ai2_apl);
-                int ai2_win = ai1.dead * 2 + (ai2_apl > ai1_apl);
-                if (ai1_win == ai2_win)
+                double ai1_vs = ai1.total_clear == 0 ? 0. : static_cast<double>(ai1.total_attack) / ai1.total_block;
+                double ai2_vs = ai2.total_clear == 0 ? 0. : static_cast<double>(ai2.total_attack) / ai2.total_block;
+                double ai1vs = ai1_vs;
+                if (ai1.dead == ai2.dead)
                 {
-                    if (handle_elo_1)
+                    if (ai1_vs > ai2_vs)
                     {
-                        m1->data.score = elo_calc(m1s, m2s, 0.5, m1->data.match, elo_max_match);
+                        double ai_2 = ai2_vs;
+                        ai2_vs -= ai1_vs;
+                        ai1_vs += ai_2;
                     }
-                    if (handle_elo_2)
+                    else if (ai2_vs > ai1_vs)
                     {
-                        m2->data.score = elo_calc(m2s, m1s, 0.5, m2->data.match, elo_max_match);
+                        double ai_1 = ai1_vs;
+                        ai1_vs -= ai2_vs;
+                        ai2_vs += ai_1;
                     }
-                }
-                else if (ai1_win > ai2_win)
-                {
-                    if (handle_elo_1)
+                    else
                     {
-                        m1->data.score = elo_calc(m1s, m2s, 1, m1->data.match, elo_max_match);
-                    }
-                    if (handle_elo_2)
-                    {
-                        m2->data.score = elo_calc(m2s, m1s, 0, m2->data.match, elo_max_match);
+                        ai1_vs += ai2_vs;
+                        ai2_vs += ai1vs;
                     }
                 }
                 else
                 {
-                    if (handle_elo_1)
-                    {
-                        m1->data.score = elo_calc(m1s, m2s, 0, m1->data.match, elo_max_match);
-                    }
-                    if (handle_elo_2)
-                    {
-                        m2->data.score = elo_calc(m2s, m1s, 1, m2->data.match, elo_max_match);
-                    }
+                    ai1_vs += !ai1.dead ? ai2_vs : -ai2_vs;
+                    ai2_vs += !ai2.dead ? ai1vs : -ai1vs;
                 }
-                m1->data.match += handle_elo_1;
-                m2->data.match += handle_elo_2;
+                ++m1->data.match;
+                ++m2->data.match;
+                m1->data.total_score += ai1_vs * 100;
+                m2->data.total_score += ai2_vs * 100;
+                m1->data.total_apl += static_cast<double>(ai1.total_attack) / (ai1.total_clear == 0 ? 1 : ai1.total_clear);
+                m1->data.total_app += static_cast<double>(ai1.total_attack) / ai1.total_block;
+                m2->data.total_apl += static_cast<double>(ai2.total_attack) / (ai2.total_clear == 0 ? 1 : ai2.total_clear);
+                m2->data.total_app += static_cast<double>(ai2.total_attack) / ai2.total_block;
+                m1->data.app = m1->data.total_app / m1->data.match;
+                m2->data.app = m2->data.total_app / m2->data.match;
+                m1->data.apl = m1->data.total_apl / m1->data.match;
+                m2->data.apl = m2->data.total_apl / m2->data.match;
+                m1->data.score = m1->data.total_score / m1->data.match;
+                m2->data.score = m2->data.total_score / m2->data.match;
                 rank_table.insert(m1);
                 rank_table.insert(m2);
 
+                auto export_best_param = [&](Node* node)
+                {
+                    FILE* best_param = fopen("best_param.txt", "w");
+                    if (best_param == NULL)
+                    {
+                        std::fstream file("best_param.txt", std::ios::out);
+                        file.close();
+                        best_param = fopen("best_param.txt", "w");
+                    }
+#if !USE_V08
+                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nsrs_ai.ai_config()->param = "
+                        "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                        " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                        " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f};\n"
+                        , node->data.name
+                        , node->data.gen
+                        , node->data.score
+                        , node->data.apl
+                        , node->data.app
+                        , node->data.data.x[0]
+                        , node->data.data.x[1]
+                        , node->data.data.x[2]
+                        , node->data.data.x[3]
+                        , node->data.data.x[4]
+                        , node->data.data.x[5]
+                        , node->data.data.x[6]
+                        , node->data.data.x[7]
+                        , node->data.data.x[8]
+                        , node->data.data.x[9]
+                        , node->data.data.x[10]
+                        , node->data.data.x[11]
+                        , node->data.data.x[12]
+                        , node->data.data.x[13]
+                        , node->data.data.x[14]
+                        , node->data.data.x[15]
+                        , node->data.data.x[16]
+                        , node->data.data.x[17]
+                        , node->data.data.x[18]
+                        , node->data.data.x[19]
+                        , node->data.data.x[20]
+                        , node->data.data.x[21]
+                        , node->data.data.x[22]
+                        , node->data.data.x[23]
+                        , node->data.data.x[24]
+                        , node->data.data.x[25]
+                        , node->data.data.x[26]
+                        , node->data.data.x[27]
+                        , node->data.data.x[28]
+                    );
+                    fclose(best_param);
+                };
+#else
+                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nsrs_ai.ai_config()->param = "
+                        "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                        " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                        " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f};\n"
+                        , node->data.name
+                        , node->data.gen
+                        , node->data.score
+                        , node->data.apl
+                        , node->data.app
+                        , node->data.data.x[0]
+                        , node->data.data.x[1]
+                        , node->data.data.x[2]
+                        , node->data.data.x[3]
+                        , node->data.data.x[4]
+                        , node->data.data.x[5]
+                        , node->data.data.x[6]
+                        , node->data.data.x[7]
+                        , node->data.data.x[8]
+                        , node->data.data.x[9]
+                        , node->data.data.x[10]
+                        , node->data.data.x[11]
+                        , node->data.data.x[12]
+                        , node->data.data.x[13]
+                        , node->data.data.x[14]
+                        , node->data.data.x[15]
+                        , node->data.data.x[16]
+                        , node->data.data.x[17]
+                        , node->data.data.x[18]
+                        , node->data.data.x[19]
+                        , node->data.data.x[20]
+                        , node->data.data.x[21]
+                        , node->data.data.x[22]
+                        , node->data.data.x[23]
+                        , node->data.data.x[24]
+                        , node->data.data.x[25]
+                    );
+                    fclose(best_param);
+                };
+#endif
                 auto do_pso_logic = [&](Node* node)
                 {
+                    best_ai_score = 0;
+                    for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
+                    {
+                        if (it->data.best > best_ai_score)
+                        {
+                            best_ai_score = it->data.best;
+                        }
+                    }
+                    if (node->data.score > best_ai_score)
+                    {
+                        if (!view)
+#if !USE_V08
+                            printf(
+                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+                                "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
+                                "\n________________________________________________\n"
+                                , node->data.name
+                                , node->data.gen
+                                , node->data.score
+                                , node->data.apl
+                                , node->data.app
+                                , node->data.data.x[0]
+                                , node->data.data.x[1]
+                                , node->data.data.x[2]
+                                , node->data.data.x[3]
+                                , node->data.data.x[4]
+                                , node->data.data.x[5]
+                                , node->data.data.x[6]
+                                , node->data.data.x[7]
+                                , node->data.data.x[8]
+                                , node->data.data.x[9]
+                                , node->data.data.x[10]
+                                , node->data.data.x[11]
+                                , node->data.data.x[12]
+                                , node->data.data.x[13]
+                                , node->data.data.x[14]
+                                , node->data.data.x[15]
+                                , node->data.data.x[16]
+                                , node->data.data.x[17]
+                                , node->data.data.x[18]
+                                , node->data.data.x[19]
+                                , node->data.data.x[20]
+                                , node->data.data.x[21]
+                                , node->data.data.x[22]
+                                , node->data.data.x[23]
+                                , node->data.data.x[24]
+                                , node->data.data.x[25]
+                                , node->data.data.x[26]
+                                , node->data.data.x[27]
+                                , node->data.data.x[28]
+                            );
+#else
+                            printf(
+                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+                                "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
+                                "\n________________________________________________\n"
+                                , node->data.name
+                                , node->data.gen
+                                , node->data.score
+                                , node->data.apl
+                                , node->data.app
+                                , node->data.data.x[0]
+                                , node->data.data.x[1]
+                                , node->data.data.x[2]
+                                , node->data.data.x[3]
+                                , node->data.data.x[4]
+                                , node->data.data.x[5]
+                                , node->data.data.x[6]
+                                , node->data.data.x[7]
+                                , node->data.data.x[8]
+                                , node->data.data.x[9]
+                                , node->data.data.x[10]
+                                , node->data.data.x[11]
+                                , node->data.data.x[12]
+                                , node->data.data.x[13]
+                                , node->data.data.x[14]
+                                , node->data.data.x[15]
+                                , node->data.data.x[16]
+                                , node->data.data.x[17]
+                                , node->data.data.x[18]
+                                , node->data.data.x[19]
+                                , node->data.data.x[20]
+                                , node->data.data.x[21]
+                                , node->data.data.x[22]
+                                , node->data.data.x[23]
+                                , node->data.data.x[24]
+                                , node->data.data.x[25]
+                            );
+#endif
+                        export_best_param(node);
+                        best_ai_score = node->data.score;
+                    }
                     NodeData* data = &node->data;
                     if (std::isnan(data->best) || data->score > data->best)
                     {
@@ -833,15 +1106,20 @@ int main(int argc, char const *argv[])
                     {
                         data->best = data->best * 0.95 + data->score * 0.05;
                     }
+                    data->total_score = 0;
                     data->match = 0;
+                    data->total_apl = 0;
+                    data->total_app = 0;
+                    data->app = 0;
+                    data->apl = 0;
                     ++data->gen;
                     rank_table.erase(node);
-                    data->score = elo_init();
+                    data->score = 0;
                     rank_table.insert(node);
-                    if (node->data.name[0] == '*' || node->data.name[0] == '-')
-                    {
-                        return;
-                    }
+                    //if (node->data.name[0] == '*' || node->data.name[0] == '-')
+                    //{
+                    //    return;
+                    //}
                     double best;
                     pso_data* best_data = nullptr;
                     for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
@@ -858,11 +1136,15 @@ int main(int argc, char const *argv[])
                     }
                     pso_logic(pso_cfg, best_data != nullptr ? *best_data : data->data, data->data, mt);
                 };
-                if (m1->data.match >= elo_max_match)
+                bool check = m1->data.match >= elo_min_match;
+                bool check_2 = m2->data.match >= elo_min_match;
+                bool reset = m1->data.score < m1->data.best;
+                bool reset_2 = m2->data.score < m2->data.best;
+                if (m1->data.match >= elo_max_match || (check && reset))
                 {
                     do_pso_logic(m1);
                 }
-                if (m2->data.match >= elo_max_match)
+                if (m2->data.match >= elo_max_match || (check_2 && reset_2))
                 {
                     do_pso_logic(m2);
                 }
@@ -874,76 +1156,88 @@ int main(int argc, char const *argv[])
     auto print_config = [&rank_table, &rank_table_lock](Node *node)
     {
         rank_table_lock.lock();
+#if !USE_V08
         printf(
-            "[99]name         = %s\n"
-            "[  ]rank         = %d\n"
-            "[  ]score        = %f\n"
-            "[  ]best         = %f\n"
-            "[  ]match        = %d\n"
-            "[ 0]base         = %8.3f, %8.3f, %8.3f\n"
-            "[ 1]roof         = %8.3f, %8.3f, %8.3f\n"
-            "[ 2]col_trans    = %8.3f, %8.3f, %8.3f\n"
-            "[ 3]row_trans    = %8.3f, %8.3f, %8.3f\n"
-            "[ 4]hole_count   = %8.3f, %8.3f, %8.3f\n"
-            "[ 5]hole_line    = %8.3f, %8.3f, %8.3f\n"
-            "[ 6]clear_width  = %8.3f, %8.3f, %8.3f\n"
-            "[ 7]wide_2       = %8.3f, %8.3f, %8.3f\n"
-            "[ 8]wide_3       = %8.3f, %8.3f, %8.3f\n"
-            "[ 9]wide_4       = %8.3f, %8.3f, %8.3f\n"
-            "[10]safe         = %8.3f, %8.3f, %8.3f\n"
-            "[11]b2b          = %8.3f, %8.3f, %8.3f\n"
-            "[12]attack       = %8.3f, %8.3f, %8.3f\n"
-            "[13]hold_t       = %8.3f, %8.3f, %8.3f\n"
-            "[14]hold_i       = %8.3f, %8.3f, %8.3f\n"
-            "[15]waste_t      = %8.3f, %8.3f, %8.3f\n"
-            "[16]waste_i      = %8.3f, %8.3f, %8.3f\n"
-            "[17]clear_1      = %8.3f, %8.3f, %8.3f\n"
-            "[18]clear_2      = %8.3f, %8.3f, %8.3f\n"
-            "[19]clear_3      = %8.3f, %8.3f, %8.3f\n"
-            "[20]clear_4      = %8.3f, %8.3f, %8.3f\n"
-            "[21]t2_slot      = %8.3f, %8.3f, %8.3f\n"
-            "[22]t3_slot      = %8.3f, %8.3f, %8.3f\n"
-            "[23]tspin_mini   = %8.3f, %8.3f, %8.3f\n"
-            "[24]tspin_1      = %8.3f, %8.3f, %8.3f\n"
-            "[25]tspin_2      = %8.3f, %8.3f, %8.3f\n"
-            "[26]tspin_3      = %8.3f, %8.3f, %8.3f\n"
-            "[27]combo        = %8.3f, %8.3f, %8.3f\n"
-            "[28]ratio        = %8.3f, %8.3f, %8.3f\n"
+            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+            "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+            " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+            " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
+            "\n________________________________________________\n"
             , node->data.name
-            , rank_table.rank(double(node->data.score))
+            , node->data.gen
             , node->data.score
-            , node->data.best
-            , node->data.match
-            , node->data.data.x[ 0], node->data.data.p[ 0], node->data.data.v[ 0]
-            , node->data.data.x[ 1], node->data.data.p[ 1], node->data.data.v[ 1]
-            , node->data.data.x[ 2], node->data.data.p[ 2], node->data.data.v[ 2]
-            , node->data.data.x[ 3], node->data.data.p[ 3], node->data.data.v[ 3]
-            , node->data.data.x[ 4], node->data.data.p[ 4], node->data.data.v[ 4]
-            , node->data.data.x[ 5], node->data.data.p[ 5], node->data.data.v[ 5]
-            , node->data.data.x[ 6], node->data.data.p[ 6], node->data.data.v[ 6]
-            , node->data.data.x[ 7], node->data.data.p[ 7], node->data.data.v[ 7]
-            , node->data.data.x[ 8], node->data.data.p[ 8], node->data.data.v[ 8]
-            , node->data.data.x[ 9], node->data.data.p[ 9], node->data.data.v[ 9]
-            , node->data.data.x[10], node->data.data.p[10], node->data.data.v[10]
-            , node->data.data.x[11], node->data.data.p[11], node->data.data.v[11]
-            , node->data.data.x[12], node->data.data.p[12], node->data.data.v[12]
-            , node->data.data.x[13], node->data.data.p[13], node->data.data.v[13]
-            , node->data.data.x[14], node->data.data.p[14], node->data.data.v[14]
-            , node->data.data.x[15], node->data.data.p[15], node->data.data.v[15]
-            , node->data.data.x[16], node->data.data.p[16], node->data.data.v[16]
-            , node->data.data.x[17], node->data.data.p[17], node->data.data.v[17]
-            , node->data.data.x[18], node->data.data.p[18], node->data.data.v[18]
-            , node->data.data.x[19], node->data.data.p[19], node->data.data.v[19]
-            , node->data.data.x[20], node->data.data.p[20], node->data.data.v[20]
-            , node->data.data.x[21], node->data.data.p[21], node->data.data.v[21]
-            , node->data.data.x[22], node->data.data.p[22], node->data.data.v[22]
-            , node->data.data.x[23], node->data.data.p[23], node->data.data.v[23]
-            , node->data.data.x[24], node->data.data.p[24], node->data.data.v[24]
-            , node->data.data.x[25], node->data.data.p[25], node->data.data.v[25]
-            , node->data.data.x[26], node->data.data.p[26], node->data.data.v[26]
-            , node->data.data.x[27], node->data.data.p[27], node->data.data.v[27]
-            , node->data.data.x[28], node->data.data.p[28], node->data.data.v[28]
+            , node->data.apl
+            , node->data.app
+            , node->data.data.x[0]
+            , node->data.data.x[1]
+            , node->data.data.x[2]
+            , node->data.data.x[3]
+            , node->data.data.x[4]
+            , node->data.data.x[5]
+            , node->data.data.x[6]
+            , node->data.data.x[7]
+            , node->data.data.x[8]
+            , node->data.data.x[9]
+            , node->data.data.x[10]
+            , node->data.data.x[11]
+            , node->data.data.x[12]
+            , node->data.data.x[13]
+            , node->data.data.x[14]
+            , node->data.data.x[15]
+            , node->data.data.x[16]
+            , node->data.data.x[17]
+            , node->data.data.x[18]
+            , node->data.data.x[19]
+            , node->data.data.x[20]
+            , node->data.data.x[21]
+            , node->data.data.x[22]
+            , node->data.data.x[23]
+            , node->data.data.x[24]
+            , node->data.data.x[25]
+            , node->data.data.x[26]
+            , node->data.data.x[27]
+            , node->data.data.x[28]
         );
+#else
+        printf(
+            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+            "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+            " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+            " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
+            "\n________________________________________________\n"
+            , node->data.name
+            , node->data.gen
+            , node->data.score
+            , node->data.apl
+            , node->data.app
+            , node->data.data.x[0]
+            , node->data.data.x[1]
+            , node->data.data.x[2]
+            , node->data.data.x[3]
+            , node->data.data.x[4]
+            , node->data.data.x[5]
+            , node->data.data.x[6]
+            , node->data.data.x[7]
+            , node->data.data.x[8]
+            , node->data.data.x[9]
+            , node->data.data.x[10]
+            , node->data.data.x[11]
+            , node->data.data.x[12]
+            , node->data.data.x[13]
+            , node->data.data.x[14]
+            , node->data.data.x[15]
+            , node->data.data.x[16]
+            , node->data.data.x[17]
+            , node->data.data.x[18]
+            , node->data.data.x[19]
+            , node->data.data.x[20]
+            , node->data.data.x[21]
+            , node->data.data.x[22]
+            , node->data.data.x[23]
+            , node->data.data.x[24]
+            , node->data.data.x[25]
+        );
+#endif
         rank_table_lock.unlock();
     };
 
@@ -979,7 +1273,11 @@ int main(int argc, char const *argv[])
             {
                 memcpy(edit->data.name, token[2].c_str(), token[2].size() + 1);
             }
+#if !USE_V08
             else if (index < sizeof(ai_zzz::TOJ::Param) / sizeof(double))
+#else
+            else if (index < sizeof(ai_zzz::TOJ_v08::Param) / sizeof(double))
+#endif
             {
                 edit->data.data.x[index] = std::atof(token[2].c_str());
                 if (token.size() >= 4)
@@ -1004,7 +1302,7 @@ int main(int argc, char const *argv[])
             NodeData data = edit->data;
             memcpy(data.name, token[1].c_str(), token[1].size() + 1);
             data.match = 0;
-            data.score = elo_init();
+            data.score = 0;
             Node *node = new Node(data);
             rank_table.insert(node);
             print_config(node);
@@ -1030,7 +1328,7 @@ int main(int argc, char const *argv[])
         for (size_t i = begin; i < end && i < rank_table.size(); ++i)
         {
             auto node = rank_table.at(i);
-            printf("rank = %3d elo = %4.1f best = %4.1f match = %3zd gen = %5zd name = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
+            printf("#%3d | SCORE = %12.1f | HIGHSCORE = %12.1f | MATCH = %3zd | GEN = %5zd | NAME = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
         }
         rank_table_lock.unlock();
         return true;
@@ -1067,36 +1365,37 @@ int main(int argc, char const *argv[])
         }
         if (token[1] == "bat")
         {
+#if !USE_V08
             printf(
-                "SET base=%.9f\n"
-                "SET roof=%.9f\n"
-                "SET col_trans=%.9f\n"
-                "SET row_trans=%.9f\n"
-                "SET hole_count=%.9f\n"
-                "SET hole_line=%.9f\n"
-                "SET clear_width=%.9f\n"
-                "SET wide_2=%.9f\n"
-                "SET wide_3=%.9f\n"
-                "SET wide_4=%.9f\n"
-                "SET safe=%.9f\n"
-                "SET b2b=%.9f\n"
-                "SET attack=%.9f\n"
-                "SET hold_t=%.9f\n"
-                "SET hold_i=%.9f\n"
-                "SET waste_t=%.9f\n"
-                "SET waste_i=%.9f\n"
-                "SET clear_1=%.9f\n"
-                "SET clear_2=%.9f\n"
-                "SET clear_3=%.9f\n"
-                "SET clear_4=%.9f\n"
-                "SET t2_slot=%.9f\n"
-                "SET t3_slot=%.9f\n"
-                "SET tspin_mini=%.9f\n"
-                "SET tspin_1=%.9f\n"
-                "SET tspin_2=%.9f\n"
-                "SET tspin_3=%.9f\n"
-                "SET combo=%.9f\n"
-                "SET ratio=%.9f\n"
+                "SET base=%.27f\n"
+                "SET roof=%.27f\n"
+                "SET col_trans=%.27f\n"
+                "SET row_trans=%.27f\n"
+                "SET hole_count=%.27f\n"
+                "SET hole_line=%.27f\n"
+                "SET clear_width=%.27f\n"
+                "SET wide_2=%.27f\n"
+                "SET wide_3=%.27f\n"
+                "SET wide_4=%.27f\n"
+                "SET safe=%.27f\n"
+                "SET b2b=%.27f\n"
+                "SET attack=%.27f\n"
+                "SET hold_t=%.27f\n"
+                "SET hold_i=%.27f\n"
+                "SET waste_t=%.27f\n"
+                "SET waste_i=%.27f\n"
+                "SET clear_1=%.27f\n"
+                "SET clear_2=%.27f\n"
+                "SET clear_3=%.27f\n"
+                "SET clear_4=%.27f\n"
+                "SET t2_slot=%.27f\n"
+                "SET t3_slot=%.27f\n"
+                "SET tspin_mini=%.27f\n"
+                "SET tspin_1=%.27f\n"
+                "SET tspin_2=%.27f\n"
+                "SET tspin_3=%.27f\n"
+                "SET combo=%.27f\n"
+                "SET ratio=%.27f\n"
                 , node->p[ 0]
                 , node->p[ 1]
                 , node->p[ 2]
@@ -1131,9 +1430,9 @@ int main(int argc, char const *argv[])
         else if (token[1] == "cpp")
         {
             printf(
-                "{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-                " %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+                "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
                 , node->p[ 0]
                 , node->p[ 1]
                 , node->p[ 2]
@@ -1164,6 +1463,96 @@ int main(int argc, char const *argv[])
                 , node->p[27]
                 , node->p[28]
             );
+#else
+              printf(
+                "SET roof=%.27f\n"
+                "SET col_trans=%.27f\n"
+                "SET row_trans=%.27f\n"
+                "SET hole_count=%.27f\n"
+                "SET hole_line=%.27f\n"
+                "SET well_depth=%.27f\n"
+                "SET hole_depth=%.27f\n"
+                "SET b2b=%.27f\n"
+                "SET attack=%.27f\n"
+                "SET max_attack=%.27f\n"
+                "SET hold_t=%.27f\n"
+                "SET hold_i=%.27f\n"
+                "SET waste_t=%.27f\n"
+                "SET waste_i=%.27f\n"
+                "SET clear_1=%.27f\n"
+                "SET clear_2=%.27f\n"
+                "SET clear_3=%.27f\n"
+                "SET clear_4=%.27f\n"
+                "SET t2_slot=%.27f\n"
+                "SET t3_slot=%.27f\n"
+                "SET tspin_mini=%.27f\n"
+                "SET tspin_1=%.27f\n"
+                "SET tspin_2=%.27f\n"
+                "SET tspin_3=%.27f\n"
+                "SET combo=%.27f\n"
+                "SET ratio=%.27f\n"
+                , node->p[ 0]
+                , node->p[ 1]
+                , node->p[ 2]
+                , node->p[ 3]
+                , node->p[ 4]
+                , node->p[ 5]
+                , node->p[ 6]
+                , node->p[ 7]
+                , node->p[ 8]
+                , node->p[ 9]
+                , node->p[10]
+                , node->p[11]
+                , node->p[12]
+                , node->p[13]
+                , node->p[14]
+                , node->p[15]
+                , node->p[16]
+                , node->p[17]
+                , node->p[18]
+                , node->p[19]
+                , node->p[20]
+                , node->p[21]
+                , node->p[22]
+                , node->p[23]
+                , node->p[24]
+                , node->p[25]
+            );
+        }
+        else if (token[1] == "cpp")
+        {
+            printf(
+                "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
+                " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
+                , node->p[ 0]
+                , node->p[ 1]
+                , node->p[ 2]
+                , node->p[ 3]
+                , node->p[ 4]
+                , node->p[ 5]
+                , node->p[ 6]
+                , node->p[ 7]
+                , node->p[ 8]
+                , node->p[ 9]
+                , node->p[10]
+                , node->p[11]
+                , node->p[12]
+                , node->p[13]
+                , node->p[14]
+                , node->p[15]
+                , node->p[16]
+                , node->p[17]
+                , node->p[18]
+                , node->p[19]
+                , node->p[20]
+                , node->p[21]
+                , node->p[22]
+                , node->p[23]
+                , node->p[24]
+                , node->p[25]
+            );
+#endif
         }
         rank_table_lock.unlock();
         return true;

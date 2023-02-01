@@ -80,7 +80,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 if (wall_kick_node == node)
                                 {
@@ -100,7 +100,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             if (wall_kick_node == node)
                             {
@@ -119,7 +119,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             if (wall_kick_node == node)
                             {
@@ -136,7 +136,7 @@ namespace search_tspin
             }
             return path;
         };
-        bool disable_d = land_point.type == None && node->land_point != nullptr && node->low >= map.roof && land_point->open(map);
+        bool disable_d = land_point.type == None && node->land_point != nullptr && node->low >= map.roof && land_point->open(map, node);
         while (true)
         {
             node_mark_.clear();
@@ -154,7 +154,7 @@ namespace search_tspin
                 {
                     TetrisNode const *node = node_search_[cache_index];
                     //l
-                    if (node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
+                    if (node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map, node))
                     {
                         if (node->move_left->index_filtered == index)
                         {
@@ -168,7 +168,7 @@ namespace search_tspin
                         {
                             TetrisNode const *node_left = node->move_left;
                             //X
-                            if (allow_180 && node_left->rotate_opposite && node_mark_.set(node_left->rotate_opposite, node_left, 'X') && node_left->rotate_opposite->check(map))
+                            if (allow_180 && node_left->rotate_opposite && node_mark_.set(node_left->rotate_opposite, node_left, 'X') && node_left->rotate_opposite->check(map, node))
                             {
                                 if (node_left->rotate_opposite->index_filtered == index)
                                 {
@@ -180,7 +180,7 @@ namespace search_tspin
                                 }
                             }
                             //Z
-                            if (node_left->rotate_counterclockwise && node_mark_.set(node_left->rotate_counterclockwise, node_left, 'Z') && node_left->rotate_counterclockwise->check(map))
+                            if (node_left->rotate_counterclockwise && node_mark_.set(node_left->rotate_counterclockwise, node_left, 'Z') && node_left->rotate_counterclockwise->check(map, node))
                             {
                                 if (node_left->rotate_counterclockwise->index_filtered == index)
                                 {
@@ -192,7 +192,7 @@ namespace search_tspin
                                 }
                             }
                             //C
-                            if (node_left->rotate_clockwise && node_mark_.set(node_left->rotate_clockwise, node_left, 'C') && node_left->rotate_clockwise->check(map))
+                            if (node_left->rotate_clockwise && node_mark_.set(node_left->rotate_clockwise, node_left, 'C') && node_left->rotate_clockwise->check(map, node))
                             {
                                 if (node_left->rotate_clockwise->index_filtered == index)
                                 {
@@ -206,7 +206,7 @@ namespace search_tspin
                         }
                     }
                     //r
-                    if (node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map))
+                    if (node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map, node))
                     {
                         if (node->move_right->index_filtered == index)
                         {
@@ -220,7 +220,7 @@ namespace search_tspin
                         {
                             TetrisNode const *node_right = node->move_right;
                             //X
-                            if (allow_180 && node_right->rotate_opposite && node_mark_.set(node_right->rotate_opposite, node_right, 'X') && node_right->rotate_opposite->check(map))
+                            if (allow_180 && node_right->rotate_opposite && node_mark_.set(node_right->rotate_opposite, node_right, 'X') && node_right->rotate_opposite->check(map, node))
                             {
                                 if (node_right->rotate_opposite->index_filtered == index)
                                 {
@@ -232,7 +232,7 @@ namespace search_tspin
                                 }
                             }
                             //Z
-                            if (node_right->rotate_counterclockwise && node_mark_.set(node_right->rotate_counterclockwise, node_right, 'Z') && node_right->rotate_counterclockwise->check(map))
+                            if (node_right->rotate_counterclockwise && node_mark_.set(node_right->rotate_counterclockwise, node_right, 'Z') && node_right->rotate_counterclockwise->check(map, node))
                             {
                                 if (node_right->rotate_counterclockwise->index_filtered == index)
                                 {
@@ -244,7 +244,7 @@ namespace search_tspin
                                 }
                             }
                             //C
-                            if (node_right->rotate_clockwise && node_mark_.set(node_right->rotate_clockwise, node_right, 'C') && node_right->rotate_clockwise->check(map))
+                            if (node_right->rotate_clockwise && node_mark_.set(node_right->rotate_clockwise, node_right, 'C') && node_right->rotate_clockwise->check(map, node))
                             {
                                 if (node_right->rotate_clockwise->index_filtered == index)
                                 {
@@ -258,10 +258,10 @@ namespace search_tspin
                         }
                     }
                     //L
-                    if (allow_LR && node->move_left && node->move_left->check(map))
+                    if (allow_LR && node->move_left && node->move_left->check(map, node))
                     {
                         TetrisNode const* node_L = node->move_left;
-                        while (node_L->move_left && node_L->move_left->check(map))
+                        while (node_L->move_left && node_L->move_left->check(map, node))
                         {
                             node_L = node_L->move_left;
                         }
@@ -278,10 +278,10 @@ namespace search_tspin
                         }
                     }
                     //R
-                    if (allow_LR && node->move_right && node->move_right->check(map))
+                    if (allow_LR && node->move_right && node->move_right->check(map, node))
                     {
                         TetrisNode const* node_R = node->move_right;
-                        while (node_R->move_right && node_R->move_right->check(map))
+                        while (node_R->move_right && node_R->move_right->check(map, node))
                         {
                             node_R = node_R->move_right;
                         }
@@ -313,7 +313,7 @@ namespace search_tspin
                         {
                             if (wall_kick_node)
                             {
-                                if (wall_kick_node->check(map))
+                                if (wall_kick_node->check(map, node))
                                 {
                                     if (node_mark_.set(wall_kick_node, node, 'x'))
                                     {
@@ -340,7 +340,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 if (node_mark_.set(wall_kick_node, node, 'z'))
                                 {
@@ -366,7 +366,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 if (node_mark_.set(wall_kick_node, node, 'c'))
                                 {
@@ -392,7 +392,7 @@ namespace search_tspin
                         if (config_->allow_d)
                         {
                             //d
-                            if (node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map))
+                            if (node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map, node))
                             {
                                 if (node->move_down->index_filtered == index)
                                 {
@@ -456,7 +456,7 @@ namespace search_tspin
     std::vector<Search::TetrisNodeWithTSpinType> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
-        if (!node->check(map))
+        if (!node->check(map, node))
         {
             return &land_point_cache_;
         }
@@ -519,7 +519,7 @@ namespace search_tspin
                 for (size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
                 {
                     node = node_search_[cache_index];
-                    if (!node->open(map) && (!node->move_down || !node->move_down->check(map)))
+                    if (!node->open(map, node) && (!node->move_down || !node->move_down->check(map, node)))
                     {
                         if (node_mark_filtered_.mark(node))
                         {
@@ -527,17 +527,17 @@ namespace search_tspin
                         }
                     }
                     //l
-                    if (node->move_left && node_mark_.mark(node->move_left) && !node->move_left->open(map) && node->move_left->check(map))
+                    if (node->move_left && node_mark_.mark(node->move_left) && !node->move_left->open(map, node) && node->move_left->check(map, node))
                     {
                         node_search_.push_back(node->move_left);
                     }
                     //r
-                    if (node->move_right && node_mark_.mark(node->move_right) && !node->move_right->open(map) && node->move_right->check(map))
+                    if (node->move_right && node_mark_.mark(node->move_right) && !node->move_right->open(map, node) && node->move_right->check(map, node))
                     {
                         node_search_.push_back(node->move_right);
                     }
                     //d
-                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map))
+                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
                     {
                         node_search_.push_back(node->move_down);
                     }
@@ -548,9 +548,9 @@ namespace search_tspin
                         {
                             if (wall_kick_node)
                             {
-                                if (wall_kick_node->check(map))
+                                if (wall_kick_node->check(map, node))
                                 {
-                                    if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
+                                    if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map, node))
                                     {
                                         node_search_.push_back(wall_kick_node);
                                     }
@@ -568,9 +568,9 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
-                                if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
+                                if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map, node))
                                 {
                                     node_search_.push_back(wall_kick_node);
                                 }
@@ -587,9 +587,9 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
-                                if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map))
+                                if (node_mark_.mark(wall_kick_node) && !wall_kick_node->open(map, node))
                                 {
                                     node_search_.push_back(wall_kick_node);
                                 }
@@ -618,7 +618,7 @@ namespace search_tspin
                     {
                         node = node->drop(map);
                     }
-                    if (!node->move_down || !node->move_down->check(map))
+                    if (!node->move_down || !node->move_down->check(map, node))
                     {
                         if (node_mark_filtered_.mark(node))
                         {
@@ -626,17 +626,17 @@ namespace search_tspin
                         }
                     }
                     //l
-                    if (node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map))
+                    if (node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map, node))
                     {
                         node_search_.push_back(node->move_left);
                     }
                     //r
-                    if (node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map))
+                    if (node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map, node))
                     {
                         node_search_.push_back(node->move_right);
                     }
                     //d
-                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map))
+                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
                     {
                         node_search_.push_back(node->move_down);
                     }
@@ -647,7 +647,7 @@ namespace search_tspin
                         {
                             if (wall_kick_node)
                             {
-                                if (wall_kick_node->check(map))
+                                if (wall_kick_node->check(map, node))
                                 {
                                     if (node_mark_.mark(wall_kick_node))
                                     {
@@ -667,7 +667,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 if (node_mark_.mark(wall_kick_node))
                                 {
@@ -686,7 +686,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 if (node_mark_.mark(wall_kick_node))
                                 {
@@ -744,7 +744,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 wall_kick_node = wall_kick_node->drop(map);
                                 if (wall_kick_node == node)
@@ -765,7 +765,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             wall_kick_node = wall_kick_node->drop(map);
                             if (wall_kick_node == node)
@@ -785,7 +785,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             wall_kick_node = wall_kick_node->drop(map);
                             if (wall_kick_node == node)
@@ -826,7 +826,7 @@ namespace search_tspin
                     {
                         if (wall_kick_node)
                         {
-                            if (wall_kick_node->check(map))
+                            if (wall_kick_node->check(map, node))
                             {
                                 wall_kick_node = wall_kick_node->drop(map);
                                 if (node_mark_.set(wall_kick_node, node, 'x'))
@@ -854,7 +854,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             wall_kick_node = wall_kick_node->drop(map);
                             if (node_mark_.set(wall_kick_node, node, 'z'))
@@ -881,7 +881,7 @@ namespace search_tspin
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map))
+                        if (wall_kick_node->check(map, node))
                         {
                             wall_kick_node = wall_kick_node->drop(map);
                             if (node_mark_.set(wall_kick_node, node, 'c'))
@@ -904,7 +904,7 @@ namespace search_tspin
                     }
                 }
                 //l
-                if ((node_test = node->move_left) && node_test->check(map) && (node_test = node_test->drop(map), node_mark_.set(node_test, node, 'l')))
+                if ((node_test = node->move_left) && node_test->check(map, node) && (node_test = node_test->drop(map), node_mark_.set(node_test, node, 'l')))
                 {
                     if (node_test->index_filtered == index)
                     {
@@ -916,7 +916,7 @@ namespace search_tspin
                     }
                 }
                 //r
-                if ((node_test = node->move_right) && node_test->check(map) && (node_test = node_test->drop(map), node_mark_.set(node_test, node, 'r')))
+                if ((node_test = node->move_right) && node_test->check(map, node) && (node_test = node_test->drop(map), node_mark_.set(node_test, node, 'r')))
                 {
                     TetrisNode const *move_right = node->move_right->drop(map);
                     if (move_right->index_filtered == index)
@@ -929,10 +929,10 @@ namespace search_tspin
                     }
                 }
                 //L
-                if (allow_LR && node->move_left && node->move_left->check(map))
+                if (allow_LR && node->move_left && node->move_left->check(map, node))
                 {
                     node_test = node->move_left->drop(map);
-                    while (node_test->move_left && node_test->move_left->check(map))
+                    while (node_test->move_left && node_test->move_left->check(map, node))
                     {
                         node_test = node_test->move_left->drop(map);
                     }
@@ -949,10 +949,10 @@ namespace search_tspin
                     }
                 }
                 //R
-                if (allow_LR && node->move_right && node->move_right->check(map))
+                if (allow_LR && node->move_right && node->move_right->check(map, node))
                 {
                     node_test = node->move_right->drop(map);
-                    while (node_test->move_right && node_test->move_right->check(map))
+                    while (node_test->move_right && node_test->move_right->check(map, node))
                     {
                         node_test = node_test->move_right->drop(map);
                     }

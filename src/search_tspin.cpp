@@ -53,7 +53,7 @@ namespace search_tspin
         bool allow_180 = config_->allow_180;
         bool allow_LR = config_->allow_LR;
         bool allow_D = config_->allow_D;
-        const int index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
+        const size_t index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
         auto build_path = [&land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             size_t node_index = node->index_filtered;
@@ -717,7 +717,7 @@ namespace search_tspin
         bool allow_180 = config_->allow_180;
         bool allow_LR = config_->allow_LR;
         bool allow_D = config_->allow_D;
-        const int index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
+        const size_t index = land_point.type == None || land_point.last == nullptr ? land_point->index_filtered : land_point.last->index_filtered;
         auto build_path = [&land_point, &map, allow_180, this](TetrisNode const *node, decltype(node_mark_) &node_mark)->std::vector<char>
         {
             size_t node_index = node->index_filtered;
@@ -1088,7 +1088,7 @@ namespace search_tspin
             node_ex.is_check = true;
             node_ex.is_last_rotate = last.second != ' ' || (node_ex.last == nullptr && depth == 0 && config_->last_rotate);
             node_ex.is_ready = check_ready(map, node);
-            node_ex.is_mini_ready = check_mini_ready(snap, node_ex);
+            node_ex.is_mini_ready = check_mini_ready(node_ex, map);
             land_point_cache_.push_back(node_ex);
         }
         return &land_point_cache_;
@@ -1118,8 +1118,31 @@ namespace search_tspin
         }
     }
 
-    bool Search::check_mini_ready(TetrisMapSnap const &snap, TetrisNodeWithTSpinType const &node)
+    bool Search::check_mini_ready(TetrisNodeWithTSpinType const& node, m_tetris::TetrisMap const& map)
     {
-        return node.is_ready && !(node->rotate_opposite && node->rotate_opposite->check(snap) || node->rotate_counterclockwise && node->rotate_counterclockwise->check(snap) || node->rotate_clockwise && node->rotate_clockwise->check(snap));
+        const size_t tX = node.node->status.x + 1;
+        const size_t tY = node.node->status.y - 1;
+        const size_t tRotation = node.node->status.r;
+
+        if (node.is_ready && tRotation != 2) {
+            if (tRotation == 0) {
+                return true;
+            }
+            else if (tRotation == 1) {
+                if (map.full(tX - 1, tY + 1) && map.full(tX - 1, tY - 1)) {
+                    return true;
+                }
+                else if (tX == 0)
+                    return true;
+            }
+            else if (tRotation == 3) {
+                if (map.full(tX + 1, tY + 1) && map.full(tX + 1, tY - 1)) {
+                    return true;
+                }
+                else if (tX == map.width - 1)
+					return true;
+            }
+        }
+        return false;
     }
 }

@@ -66,3 +66,6 @@ Icon
 *.sarif
 settings.ini
 misamino.cfg
+/misa
+/io_pso_scene
+misamino.ini

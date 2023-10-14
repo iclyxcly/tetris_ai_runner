@@ -39,18 +39,34 @@
  */
 #if !USE_MISAMINO
 #if USE_THREAD
+#if !USE_V08
+m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::IO, search_tspin::Search> srs_ai;
+#else 
 m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#endif
+#else
+#if !USE_V08
+m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_tspin::Search> srs_ai;
 #else
 m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#endif
 #endif
 #if USE_PC
 std::unique_ptr<m_tetris::TetrisThreadEngine<rule_io::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>> srs_pc;
 #endif
 #else
 #if USE_THREAD
+#if !USE_V08
+m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::IO, search_tspin::Search> srs_ai;
+#else
 m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#endif
+#else
+#if !USE_V08
+m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::IO, search_tspin::Search> srs_ai;
 #else
 m_tetris::TetrisEngine<rule_toj::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> srs_ai;
+#endif
 #endif
 #if USE_PC
 std::unique_ptr<m_tetris::TetrisThreadEngine<rule_toj::TetrisRule, ai_zzz::TOJ_PC, search_tspin::Search>> srs_pc;
@@ -150,6 +166,24 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int comb
     srs_ai.search_config()->allow_d = true;
     srs_ai.search_config()->last_rotate = true;
     srs_ai.search_config()->is_20g = false;
+#if !USE_V08
+    srs_ai.ai_config()->safe = srs_ai.ai()->get_safe(map, active);
+    ai_zzz::IO::Status::init_t_value(map, srs_ai.status()->t2_value, srs_ai.status()->t3_value);
+    srs_ai.status()->b2b = !!b2b;
+    srs_ai.status()->acc_value = 0;
+    //NAME: init_24
+    //GEN: 58
+    //SCORE: 1596.95
+    //DIFF: 93.30
+    srs_ai.ai_config()->param = { 10.695327826494718692629248835, 9.261072057201415574922975793, 12.140335837873616142701393983, 15.382651766125240655469497142, 6.678204554058711828190553206, 5.897181596456438690267987113, 0.269416813375891961435115718, 0.391484929653500624002759878, 5.822108932702665384795182035, -5.201122502596883023784357647, 0.056575340003034650659952121, 1.645379752415937701925940928, 7.339142290119831102401803946, -0.013090860808305978743582010, -0.006922730671346907088681277, -2.038228942160984047404781450, -1.435855059887167994858714337, -0.100653160429101329320644709, -1.955148834179624817153353433, -0.740710718282400981671287354, -0.366645080200634798650582979, 0.062370184041030451993492534, -0.486575299365698377140887487, -0.807740828371587227252348384, -0.354631751564184027891712958, 0.496458131349682474375839547, -0.800817533473961895573722813, 1.338630117037470590446446295, 0.859673565668164108011239932 };
+#else
+    // GEN 32 + 67
+    srs_ai.ai_config()->param = { 130.258623047, 163.484976399, 165.647797168, 80.340990404, 375.794105624, 99.733216160, 36.061566195, 1.850744739, 127.932139301, 0.972053563, 5.576856085, 2.793379227, 0.531874525, -0.052524185, -12.113575797, 0.463704942, 0.678685412, 1.585954016, 1.505606372, 0.804860770, -2.241138334, 0.702344700, 6.882270609, 11.306759030, 7.567030044, 27.695650218, 1.410010643 };
+    srs_ai.status()->max_combo = 0;
+    srs_ai.status()->attack = 0;
+    srs_ai.status()->b2bcnt = b2b;
+    srs_ai.status()->board_fill = map.count;
+#endif
 #if USE_PC
     * srs_pc->search_config() = *srs_ai.search_config();
 #endif
@@ -179,6 +213,10 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int comb
         j = (map.full(3, 19) || map.full(4, 19) || map.full(5, 19) || map.full(6, 19)) ? 2 : 1;
         break;
     }
+    struct ComboTable {
+        int table[24] = { 0,0,0,1,1,1,1,2,2,2,2,2,2,2,2,2,2,3 };
+        int table_max = 18;
+    }table;
 #else
     struct ComboTable {
         int table[24] = { 0 };
@@ -194,39 +232,30 @@ extern "C" DECLSPEC_EXPORT char* __cdecl TetrisAI(int field[], int b2b, int comb
         }
         table.table_max = max - 1;
     }
+#endif
     srs_ai.ai_config()->table = table.table;
     srs_ai.ai_config()->table_max = table.table_max;
 #if USE_PC
     srs_pc->ai_config()->table = table.table;
     srs_pc->ai_config()->table_max = table.table_max;
 #endif
-#endif
     srs_ai.memory_limit(1024ull << 20);
-    //NAME: init_4
-    //GEN: 2288
-    //SCORE: 68.14
-    //APL: 0.81
-    //APP: 0.54
-    //srs_ai.ai_config()->param = { -23.830199668974923810083055287, -17.242891292429710858868929790, -2.875121821742477656869141356, 7.385270308622586377111929323, -32.017289677401585379357129568, -35.306590380935368500558979576, -14.458485788997041510128838127, -12.188178526461387107815426134, -0.385558420665085055389909030, 1.910549420187774627422072626, 1.893699329993524527182557904, 4.090329115270189497266528633, 2.706266980847195746662237070, -5.838227816833381211836240254, -1.311622717384404834817246410, -11.382490739440141780391968496, -20.963474293917503388229306438, -16.357028122308690853969892487, -8.032171253454986725728304009, 7.716665593121650346120077302, -0.557610912589839191610963098, -0.589153252385037351501750891, 1.157045254708805703813823129, 4.990171660742822368206361716, 1.266141773880826049136771871, 1.466868799005301315929727934, 0.337850684763547071121081444 };
     srs_ai.status()->is_margin = elapsed_time > GARBAGE_MARGIN_TIME;
-    srs_ai.status()->combo = combo;
-    srs_ai.status()->attack = 0;
-    srs_ai.status()->max_attack = 0;
-    srs_ai.status()->max_combo = 0;
-    srs_ai.status()->combo_attack = 0;
-    srs_ai.status()->b2b_attack = 0;
     srs_ai.status()->death = 0;
+    srs_ai.status()->combo = combo;
+    if (srs_ai.status()->under_attack != upcomeAtt)
+    {
+        srs_ai.update();
+    }
     srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
-    srs_ai.status()->b2bcnt = b2b;
-    srs_ai.status()->board_fill = map.count;
+    srs_ai.status()->like = 0;
+    srs_ai.status()->value = 0;
 #if !USE_MISAMINO
     srs_ai.status()->pc = pc;
 #else
     srs_ai.status()->pc = true;
 #endif
-    srs_ai.status()->like = 0;
-    srs_ai.status()->value = 0;
 #if USE_PC
     srs_pc->memory_limit(768ull << 20);
     srs_pc->status()->attack = 0;

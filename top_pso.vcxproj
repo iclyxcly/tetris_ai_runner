@@ -27,6 +27,7 @@
     <ClInclude Include="..\tetris_ai_runner\src\integer_utils.h" />
     <ClInclude Include="..\tetris_ai_runner\src\random.h" />
     <ClInclude Include="..\tetris_ai_runner\src\rule_srs.h" />
+	<ClInclude Include="..\tetris_ai_runner\src\rule_io.h" />
     <ClInclude Include="..\tetris_ai_runner\src\sb_tree.h" />
     <ClInclude Include="..\tetris_ai_runner\src\search_tspin.h" />
     <ClInclude Include="..\tetris_ai_runner\src\tetris_core.h" />
@@ -39,10 +40,11 @@
     <ClCompile Include="..\tetris_ai_runner\src\ai_zzz.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\integer_utils.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\random.cpp" />
-    <ClCompile Include="..\tetris_ai_runner\src\rule_srs.cpp" />
+    <ClCompile Include="..\tetris_ai_runner\src\rule_io.cpp" />
+	<ClCompile Include="..\tetris_ai_runner\src\rule_srs.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\search_tspin.cpp" />
     <ClCompile Include="..\tetris_ai_runner\src\tetris_core.cpp" />
-    <ClCompile Include="src\pso.cpp" />
+    <ClCompile Include="src\io_pso.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{301BCE5D-F7CD-4C88-B565-0290F70B0530}</ProjectGuid>
@@ -127,7 +129,7 @@
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,7 +148,7 @@
       <SubSystem>Console</SubSystem>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -167,7 +169,7 @@
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -187,7 +189,7 @@
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <PostBuildEvent>
-      <Command>copy $(TargetPath) $(SolutionDir)$(TargetFileName)</Command>
+      <Command>copy "$(TargetPath)" "$(SolutionDir)$(TargetFileName)"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

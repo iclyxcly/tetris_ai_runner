@@ -915,7 +915,9 @@ namespace ai_zzz
             update_like(p.clear_4);
             break;
         }
+        int upcomeAtt = result.under_attack;
         result.under_attack = std::max(0, result.under_attack - attack);
+        attack -= std::max(0, attack - upcomeAtt);
         int config_safe = std::max(0, config_->safe - result.under_attack - result.map_rise);
         int t_expect = [=]()->int
         {
@@ -1578,6 +1580,547 @@ namespace ai_zzz
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 
+    bool IO::Status::operator < (Status const& other) const
+    {
+        return value < other.value;
+    }
+
+    int8_t IO::get_safe(m_tetris::TetrisMap const& m, char t) const {
+        int safe = 0;
+        while (map_in_danger_(m, context_->convert(t), safe + 1) == 0)
+        {
+            ++safe;
+        }
+        return safe;
+    }
+
+    void IO::init(m_tetris::TetrisContext const* context, Config const* config)
+    {
+        context_ = context;
+        config_ = config;
+        col_mask_ = context->full() & ~1;
+        row_mask_ = context->full();
+        map_danger_data_.resize(context->type_max());
+        for (size_t i = 0; i < context->type_max(); ++i)
+        {
+            TetrisMap map(context->width(), context->height());
+            TetrisNode const* node = context->generate(i);
+            node->attach(context, map);
+            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            for (int y = 0; y < 3; ++y)
+            {
+                map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
+            }
+        }
+    }
+
+    std::string IO::ai_name() const
+    {
+        return "ZZZ TOJ_IO v0.1";
+    }
+
+    void IO::Status::init_t_value(TetrisMap const& map, int16_t& t2_value_ref, int16_t& t3_value_ref, TetrisMap* out_map)
+    {
+        int row_bit_count_global[40];
+        for (int y = 0; y < map.roof; ++y)
+        {
+            row_bit_count_global[y] = ZZZ_BitCount(map.row[y]);
+        }
+        memset(row_bit_count_global + map.roof, 0, sizeof(int) * (40 - map.roof));
+        t2_value_ref = 0;
+        t3_value_ref = 0;
+        for (int y = 0, ey = std::min(20, map.roof - 2); y < ey; ++y)
+        {
+            int new_y = y;
+            int row0 = map.row[y];
+            int row1 = map.row[y + 1];
+            int row2 = map.row[y + 2];
+            int row3 = map.row[y + 3];
+            int row4 = map.row[y + 4];
+            int row5 = map.row[y + 5];
+            int row6 = map.row[y + 6];
+            int* row_bit_count = row_bit_count_global + y;
+            for (int x = 1, ex = map.width - 2; x < ex; ++x)
+            {
+                if (((~row0 >> x) & 1) & (((~row1 >> x) & 3) == 3) & ((~row2 >> x) & 1) & !((row3 >> x) & 7) & (((~row4 >> x) & 6) == 6))
+                {
+                    int t3_count = 0;
+                    if (row_bit_count[0] == map.width - 1)
+                    {
+                        t3_count += 1;
+                    }
+                    if (row_bit_count[1] == map.width - 2)
+                    {
+                        t3_count += 1;
+                    }
+                    if (row_bit_count[2] == map.width - 1)
+                    {
+                        t3_count += 1;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    int t3_bit_count = row_bit_count[0] + row_bit_count[1] + row_bit_count[2];
+                    if (t3_count >= 2 && t3_bit_count > map.width * 2)
+                    {
+                        int t3_value = t3_bit_count * t3_count;
+                        if ((row4 >> x) & 1)
+                        {
+                            t3_value += t3_bit_count + row_bit_count[3];
+                        }
+                        else if (((row4 >> x) & 7) == 1 && ((row5 >> x) & 7) == 1 && ((row6 >> x) & 7) == 1)
+                        {
+                            t3_value = 0;
+                        }
+                        else
+                        {
+                            t3_value /= 2;
+                        }
+                        if (((row3 >> x) & 8) != ((row4 >> x) & 8))
+                        {
+                            t3_value = 0;
+                        }
+                        if (t3_value > 0 && out_map != nullptr)
+                        {
+                            out_map->row[y + 0] |= 1 << x;
+                            out_map->row[y + 1] |= 3 << x;
+                            out_map->row[y + 2] |= 1 << x;
+                            out_map->row[y + 3] |= 1 << x;
+                        }
+                        t3_value_ref += t3_value;
+                        new_y += 2;
+                        break;
+                    }
+                }
+            }
+            if (new_y != y)
+            {
+                y = new_y;
+                continue;
+            }
+            for (int x = 0, ex = map.width - 3; x < ex; ++x)
+            {
+                if (((~row0 >> x) & 4) & (((~row1 >> x) & 6) == 6) & ((~row2 >> x) & 4) & !((row3 >> x) & 7) & (((~row4 >> x) & 3) == 3))
+                {
+                    int t3_count = 0;
+                    if (row_bit_count[0] == map.width - 1)
+                    {
+                        t3_count += 1;
+                    }
+                    if (row_bit_count[1] == map.width - 2)
+                    {
+                        t3_count += 1;
+                    }
+                    if (row_bit_count[2] == map.width - 1)
+                    {
+                        t3_count += 1;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                    int t3_bit_count = row_bit_count[0] + row_bit_count[1] + row_bit_count[2];
+                    if (t3_count >= 2 && t3_bit_count > map.width * 2)
+                    {
+                        int t3_value = t3_bit_count * t3_count;
+                        if ((row2 >> x) & 2)
+                        {
+                            t3_value += t3_bit_count;
+                        }
+                        else if (((row4 >> x) & 7) == 4 && ((row5 >> x) & 7) == 4 && ((row6 >> x) & 7) == 4)
+                        {
+                            t3_value = 0;
+                        }
+                        else
+                        {
+                            t3_value /= 4;
+                        }
+                        if (((row3 >> x) & 1) != ((row4 >> x) & 1))
+                        {
+                            t3_value = 0;
+                        }
+                        if (t3_value > 0 && out_map != nullptr)
+                        {
+                            out_map->row[y + 0] |= 4 << x;
+                            out_map->row[y + 1] |= 6 << x;
+                            out_map->row[y + 2] |= 4 << x;
+                            out_map->row[y + 3] |= 4 << x;
+                        }
+                        t3_value_ref += t3_value;
+                        new_y += 2;
+                        break;
+                    }
+                }
+            }
+            if (new_y != y)
+            {
+                y = new_y;
+                continue;
+            }
+            for (int x = 0, ex = map.width - 2; x < ex; ++x)
+            {
+                if ((((row0 >> x) & 7) == 5) & !((row1 >> x) & 7))
+                {
+                    int row01_count = row_bit_count[0] + row_bit_count[1];
+                    int t2_value = row01_count;
+                    if (row01_count > map.width)
+                    {
+                        if (row_bit_count[0] == map.width - 1)
+                        {
+                            t2_value += row01_count;
+                        }
+                        if (row_bit_count[1] == map.width - 3)
+                        {
+                            t2_value += row01_count;
+                        }
+                        int row2_check = (row2 >> x) & 7;
+                        switch (row2_check)
+                        {
+                        case 1: case 4:
+                            t2_value += row01_count * 3;
+                            break;
+                        case 2: case 3: case 5: case 6: case 7:
+                            t2_value = 0;
+                            break;
+                        default:
+                            t2_value = t2_value / 2;
+                            break;
+                        }
+                        if (t2_value > 0 && out_map != nullptr)
+                        {
+                            out_map->row[y + 0] |= 2 << x;
+                            out_map->row[y + 1] |= 7 << x;
+                        }
+                        t2_value_ref += t2_value;
+                        ++new_y;
+                        break;
+                    }
+                    t2_value_ref += t2_value;
+                }
+            }
+            y = new_y;
+        }
+    };
+
+    IO::Result IO::eval(TetrisNodeEx const& node, TetrisMap const& map, TetrisMap const& src_map, size_t clear) const
+    {
+        const int width_m1 = map.width - 1;
+
+        Result result;
+        memset(&result, 0, sizeof result);
+
+        TetrisMap t_map = map;
+        Status::init_t_value(t_map, result.t2_value, result.t3_value, &t_map);
+
+        size_t ColTrans = 2 * (t_map.height - t_map.roof);
+        size_t RowTrans = t_map.roof == t_map.height ? 0 : t_map.width;
+        for (int y = 0; y < t_map.roof; ++y)
+        {
+            ColTrans += !t_map.full(0, y) + !t_map.full(width_m1, y) + ZZZ_BitCount((t_map.row[y] ^ (t_map.row[y] << 1)) & col_mask_);
+            if (y != 0)
+            {
+                RowTrans += ZZZ_BitCount(t_map.row[y - 1] ^ t_map.row[y]);
+            }
+        }
+        RowTrans += ZZZ_BitCount(row_mask_ & ~t_map.row[0]);
+        RowTrans += ZZZ_BitCount(t_map.roof == t_map.height ? row_mask_ & ~t_map.row[t_map.roof - 1] : t_map.row[t_map.roof - 1]);
+        struct
+        {
+            int HoleCount;
+            int HoleLine;
+
+            int Wide[31];
+
+            int LineCoverBits;
+            int ClearWidth;
+        } v;
+        std::memset(&v, 0, sizeof v);
+        int WideCount = t_map.width - 1;
+
+        for (int y = t_map.roof - 1; y >= 0; --y)
+        {
+            v.LineCoverBits |= t_map.row[y];
+            int LineHole = v.LineCoverBits ^ t_map.row[y];
+            if (LineHole != 0)
+            {
+                v.HoleCount += ZZZ_BitCount(LineHole);
+                ++v.HoleLine;
+                for (int hy = y + 1, hy_max = std::min(t_map.roof, hy + 8); hy < hy_max; ++hy)
+                {
+                    uint32_t CheckLine = LineHole & t_map.row[hy];
+                    if (CheckLine > 0)
+                    {
+                        v.ClearWidth += (t_map.width - ZZZ_BitCount(t_map.row[hy])) * hy;
+                    }
+                }
+            }
+            WideCount = std::min<int>(WideCount, t_map.width - ZZZ_BitCount(v.LineCoverBits));
+            if (v.HoleLine == 0)
+            {
+                ++v.Wide[WideCount];
+            }
+        }
+        int side_roof = std::max({ map.top[0], map.top[1], map.top[2], map.top[width_m1], map.top[width_m1 - 1], map.top[width_m1 - 2] });
+        auto& p = config_->param;
+        result.value = (0.
+            - side_roof * p.roof
+            - ColTrans * p.col_trans
+            - RowTrans * p.row_trans
+            - v.HoleCount * p.hole_count
+            - v.HoleLine * p.hole_line
+            - v.ClearWidth * p.clear_width
+            + v.Wide[2] * p.wide_2
+            + v.Wide[3] * p.wide_3
+            + v.Wide[4] * p.wide_4
+            );
+        result.count = t_map.count;
+        result.clear = int8_t(clear);
+        result.top_out = node->row >= 20;
+        result.map = &map;
+        return result;
+    }
+
+    IO::Status IO::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
+    {
+        if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
+        {
+            if (eval_result.clear == 1 && node.is_mini_ready)
+            {
+                node.type = TSpinType::TSpinMini;
+            }
+            else if (node.is_ready)
+            {
+                node.type = TSpinType::TSpin;
+            }
+            else
+            {
+                node.type = TSpinType::None;
+            }
+        }
+        Status result;
+        memcpy(&result, &status, sizeof status);
+        int attack = 0;
+        int t_attack = 0;
+        double like = 0;
+        double dislike = 0;
+        auto get_combo_attack = [&](int c)
+            {
+                return config_->table[std::min<int>(config_->table_max - 1, c + 1)];
+            };
+        auto get_attack = [&](int base_atk, int combo, int b2b)
+            {
+                double atk = base_atk;
+                if (b2b > 1)
+                {
+                    --b2b;
+                    double f = log1p(b2b * 0.8);
+                    while (f > 1)
+                    {
+                        --f;
+                    }
+                    atk += (floor(1 + log1p((b2b) * 0.8)) + (b2b == 1 ? 0 : (1 + f) / 3));
+                }
+                --combo;
+                atk *= (1 + 0.25 * combo);
+                if (combo > 1)
+                {
+                    atk = std::max(log1p(1.25 * combo), atk);
+                }
+                return static_cast<int>(floor(atk));
+            };
+        auto update_like = [&](double v)
+            {
+                v > 0 ? like += v : dislike -= v;
+            };
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        auto& p = config_->param;
+        switch (eval_result.clear)
+        {
+        case 0:
+            result.combo = 0;
+            if (status.under_attack > 0)
+            {
+                if (status.under_attack > 8)
+                {
+                    result.under_attack -= 8;
+                    result.map_rise += 8;
+                }
+                else
+                {
+                    result.map_rise = status.under_attack;
+                    result.under_attack = 0;
+                }
+                if (result.map_rise > safe)
+                {
+                    result.death = 1;
+                }
+            }
+            update_like((node->status.t == 'I') * p.waste_i);
+            update_like((node->status.t == 'T') * p.waste_t);
+            break;
+        case 1:
+            if (node.type == TSpinType::TSpinMini)
+            {
+                attack = get_attack(0, ++result.combo, ++result.b2b);
+                update_like(p.tspin_mini);
+            }
+            else if (node.type == TSpinType::TSpin)
+            {
+                attack = get_attack(2, ++result.combo, ++result.b2b);
+                update_like(p.tspin_1);
+                t_attack = 1;
+            }
+            else
+            {
+                attack = get_attack(0, ++result.combo, result.b2b);
+                result.b2b = 0;
+                update_like((node->status.t == 'I') * p.waste_i);
+                update_like((node->status.t == 'T') * p.waste_t);
+                update_like(p.clear_1);
+            }
+            break;
+        case 2:
+            if (node.type != TSpinType::None)
+            {
+                attack = get_attack(4, ++result.combo, ++result.b2b);
+                update_like(p.tspin_2);
+                t_attack = 1;
+            }
+            else
+            {
+                result.b2b = 0;
+                attack = get_attack(1, ++result.combo, result.b2b);
+                update_like((node->status.t == 'I') * p.waste_i);
+                update_like((node->status.t == 'T') * p.waste_t);
+                update_like(p.clear_2);
+            }
+            break;
+        case 3:
+            if (node.type != TSpinType::None)
+            {
+                attack = get_attack(6, ++result.combo, ++result.b2b);
+                update_like(p.tspin_3);
+                t_attack = 1;
+            }
+            else
+            {
+                result.b2b = 0;
+                attack = get_attack(2, ++result.combo, result.b2b);
+                update_like((node->status.t == 'I') * p.waste_i);
+                update_like(p.clear_3);
+            }
+            break;
+        case 4:
+            attack = get_attack(4, ++result.combo, ++result.b2b);
+            update_like(p.clear_4);
+            break;
+        }
+        if (eval_result.count == 0 && result.map_rise == 0)
+        {
+            like += 999;
+            attack += 10;
+        }
+        if (result.is_margin)
+        {
+            attack += (int)std::floor((((clock() - result.start_count) / 1000.0) * GARBAGE_INCREASE) * attack);
+        }
+        int upcomeAtt = result.under_attack;
+        result.under_attack = std::max(0, result.under_attack - attack);
+        attack -= std::max(0, attack - result.under_attack);
+        int config_safe = std::max(0, config_->safe - result.under_attack - result.map_rise);
+        int t_expect = [=]()->int
+            {
+                if (env.hold == 'T')
+                {
+                    return 0;
+                }
+                for (size_t i = 0; i < env.length; ++i)
+                {
+                    if (env.next[i] == 'T')
+                    {
+                        return i;
+                    }
+                }
+                return 13;
+            }();
+            switch (env.hold)
+            {
+            case 'T':
+                if (node.type == TSpinType::None)
+                {
+                    update_like(double(20 + config_safe) * p.hold_t);
+                }
+                break;
+            case 'I':
+                if (eval_result.clear != 4)
+                {
+                    update_like(double(40 - config_safe) * p.hold_i);
+                }
+                break;
+            }
+            if (safe < 0 || eval_result.top_out)
+            {
+                result.death = 1;
+                safe = 0;
+            }
+            double field = eval_result.value * double(40 - config_safe) / 20;
+            double t_like = 0;
+            double t_dislike = 0;
+            if (t_attack == 0)
+            {
+                double t2_safe = std::max(0, config_safe - 4);
+                double t3_safe = std::max(0, config_safe - 10);
+                if (eval_result.t2_value > status.t2_value)
+                {
+                    t_like += (eval_result.t2_value - status.t2_value) * t2_safe * std::max(10 - t_expect, 5) * p.t2_slot;
+                }
+                else
+                {
+                    t_dislike += (status.t2_value - eval_result.t2_value) * t2_safe * 3 * p.t2_slot;
+                }
+                if (eval_result.t3_value > status.t3_value)
+                {
+                    t_like += (eval_result.t3_value - status.t3_value) * t3_safe * std::max(10 - t_expect, 4) * (3 + result.b2b) * p.t3_slot;
+                }
+                else
+                {
+                    t_dislike += (status.t3_value - eval_result.t3_value) * t3_safe * 4 * p.t3_slot;
+                }
+            }
+            result.t2_value = eval_result.t2_value;
+            result.t3_value = eval_result.t3_value;
+            result.acc_value += (0
+                + attack * (config_safe + 16) * p.attack
+                + get_combo_attack(result.combo) * result.combo * (100 - config_safe) * p.combo
+                + (result.b2b - status.b2b) * (config_safe + 16) * p.b2b
+                - t_dislike
+                - dislike * config_safe * (config_safe + 4) * 4
+                - result.death * 999999999.0
+                );
+            result.like = (status.like * 1.3
+                + safe * (40 - config_safe) * p.safe
+                + like * config_safe * (config_safe + 4) * 4
+                + t_like
+                );
+            result.value = (result.acc_value
+                - result.map_rise * (40 - config_safe) * p.safe
+                + result.like
+                + field * p.base
+                );
+            return result;
+    }
+
+    size_t IO::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
+    {
+        if (up >= 20)
+        {
+            return 1;
+        }
+        size_t height = 22 - up;
+        return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
+    }
+
     bool IO_v08::Status::operator < (Status const& other) const
     {
         return value < other.value;
@@ -1615,7 +2158,7 @@ namespace ai_zzz
 
     std::string IO_v08::ai_name() const
     {
-        return "ZZZ TOJ_IO v0.1";
+        return "ZZZ TOJ v0.8 PLUS";
     }
 
     IO_v08::Result IO_v08::eval(TetrisNodeEx const& node, m_tetris::TetrisMap const& map, m_tetris::TetrisMap const& src_map, size_t clear) const
@@ -1649,9 +2192,6 @@ namespace ai_zzz
             int HoleDepth;
             int WellDepth;
 
-            int Wide[31];
-            int ClearWidth;
-
             int HoleNum[32];
             int WellNum[32];
 
@@ -1659,6 +2199,11 @@ namespace ai_zzz
             int HolePosyIndex;
         } v;
         std::memset(&v, 0, sizeof v);
+        struct
+        {
+            int ClearWidth;
+        } a[40];
+
         for (int y = map.roof - 1; y >= 0; --y)
         {
             v.LineCoverBits |= map.row[y];
@@ -1666,7 +2211,7 @@ namespace ai_zzz
             if (LineHole != 0)
             {
                 ++v.HoleLine;
-                v.HoleCount += ZZZ_BitCount(LineHole);
+                a[v.HolePosyIndex].ClearWidth = 0;
                 for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -1674,7 +2219,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.ClearWidth += (map.width - ZZZ_BitCount(map.row[hy])) * hy;
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -1724,9 +2269,17 @@ namespace ai_zzz
             - map.roof * p.roof
             - ColTrans * p.col_trans
             - RowTrans * p.row_trans
-            - v.ClearWidth * p.clear_width
+            - v.HoleCount * p.hole_count
+            - v.HoleLine * p.hole_line
+            - v.WellDepth * p.well_depth
+            - v.HoleDepth * p.hole_depth
             );
-        result.count = map.count;
+        double rate = 32, mul = 1.0 / 4;
+        for (int i = 0; i < v.HolePosyIndex; ++i, rate *= mul)
+        {
+            result.value -= a[i].ClearWidth * rate;
+        }
+        result.count = map.count + v.HoleCount;
         result.clear = clear;
         result.t2_value = 0;
         result.t3_value = 0;
@@ -1873,90 +2426,102 @@ namespace ai_zzz
                 node.type = TSpinType::None;
             }
         }
-        auto getB2bAttack = [&](int a)
-        {
-            return int(floor(((a - 1) == 0 ? 0 : 1) + log1p((a - 1) * 0.8)) + ((a - 1) == 1 ? 0 : (1 + log1p(a * 0.8) - floor(1 + log1p((a - 1) * 0.8))) / 3));
-        };
-        auto getMulAttack = [&](int a, int b)
-        {
-            return int(a * (1 + .25 * b));
-        };
-        auto getComboAttack = [&](int a)
-        {
-            return int(log1p((a - 1) * 1.25));
-        };
         result.value = eval_result.value;
         auto& p = config_->param;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
         int curAtk = 0;
+        auto get_attack = [&](int base_atk, int combo, int b2b)
+            {
+                double atk = base_atk;
+                if (b2b > 1)
+                {
+                    --b2b;
+                    double f = log1p(b2b * 0.8);
+                    while (f > 1)
+                    {
+                        --f;
+                    }
+                    atk += (floor(1 + log1p((b2b) * 0.8)) + (b2b == 1 ? 0 : (1 + f) / 3));
+                }
+                --combo;
+                atk *= (1 + 0.25 * combo);
+                if (combo > 1)
+                {
+                    atk = std::max(log1p(1.25 * combo), atk);
+                }
+                return static_cast<int>(floor(atk));
+            };
         switch (eval_result.clear)
         {
         case 0:
+            result.board_fill += 4;
             result.combo = 0;
             if (status.under_attack > 0)
             {
                 result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
                 result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
+                result.like += (node->status.t == 'I') * p.waste_i;
+                result.like += (node->status.t == 'T') * p.waste_t;
                 result.under_attack = result.under_attack > GARBAGE_CAP ? result.under_attack - GARBAGE_CAP : 0;
             }
-            result.like += (node->status.t == 'I') * p.waste_i;
-            result.like += (node->status.t == 'T') * p.waste_t;
             break;
         case 1:
             if (node.type == TSpinType::TSpinMini)
             {
                 result.like += p.tspin_mini;
-                result.attack += curAtk = getMulAttack(getB2bAttack(++result.b2bcnt), ++result.combo);
+                result.attack += curAtk = get_attack(0, ++result.combo, ++result.b2bcnt);
             }
             else if (node.type == TSpinType::TSpin)
             {
                 result.like += p.tspin_1;
-                result.attack += curAtk = getMulAttack(2 + getB2bAttack(++result.b2bcnt), ++result.combo);
+                result.attack += curAtk = get_attack(2, ++result.combo, ++result.b2bcnt);
             }
             else
             {
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
                 result.like += p.clear_1;
-                result.attack += curAtk = getComboAttack(++result.combo);
                 result.b2bcnt = 0;
+                result.attack += curAtk = get_attack(0, ++result.combo, result.b2bcnt);
             }
             break;
         case 2:
             if (node.type != TSpinType::None)
             {
                 result.like += p.tspin_2;
-                result.attack += curAtk = getMulAttack(4 + getB2bAttack(++result.b2bcnt), ++result.combo);
+                result.attack += curAtk = get_attack(4, ++result.combo, ++result.b2bcnt);
             }
             else
             {
+                result.like += (node->status.t == 'I') * p.waste_i;
+                result.like += (node->status.t == 'T') * p.waste_t;
                 result.like += p.clear_2;
-                result.attack += curAtk = getMulAttack(1, ++result.combo);
                 result.b2bcnt = 0;
+                result.attack += curAtk = get_attack(1, ++result.combo, result.b2bcnt);
             }
             break;
         case 3:
             if (node.type != TSpinType::None)
             {
                 result.like += p.tspin_3;
-                result.attack += curAtk = getMulAttack(6 + getB2bAttack(++result.b2bcnt), ++result.combo);
+                result.attack += curAtk = get_attack(6, ++result.combo, ++result.b2bcnt);
             }
             else
             {
                 result.like += p.clear_3;
-                result.attack += curAtk = getMulAttack(2, ++result.combo);
                 result.b2bcnt = 0;
+                result.attack += curAtk = get_attack(2, ++result.combo, result.b2bcnt);
             }
             break;
         case 4:
-            result.attack += curAtk = getMulAttack(4 + getB2bAttack(++result.b2bcnt), ++result.combo);
-            result.like += p.clear_4;
+            result.attack += curAtk = get_attack(4, ++result.combo, ++result.b2bcnt);
+            result.like += (result.combo + result.b2bcnt) * (1 + result.attack) * p.clear_4;
             break;
         }
         result.board_fill -= (eval_result.clear * 10) - 4;
         if (eval_result.count == 0 && result.map_rise == 0)
         {
-            if (!result.pc) 
+            if (!result.pc)
             {
                 result.death = 1;
             }
@@ -1969,55 +2534,58 @@ namespace ai_zzz
         if (result.is_margin)
             result.attack += (int)std::floor((((clock() - result.start_count) / 1000.0) * GARBAGE_INCREASE) * curAtk);
         size_t t_expect = [=]()->int
-        {
-            if (env.hold == 'T')
             {
-                return 0;
-            }
-            for (size_t i = 0; i < env.length; ++i)
-            {
-                if (env.next[i] == 'T')
+                if (env.hold == 'T')
                 {
-                    return i;
+                    return 0;
                 }
-            }
-            return 13;
-        }();
-        switch (env.hold)
-        {
-        case 'T':
-            if (node.type == TSpinType::None)
+                for (size_t i = 0; i < env.length; ++i)
+                {
+                    if (env.next[i] == 'T')
+                    {
+                        return i;
+                    }
+                }
+                return 13;
+            }();
+            switch (env.hold)
             {
-                result.like += p.hold_t;
+            case 'T':
+                if (node.type == TSpinType::None)
+                {
+                    result.like += p.hold_t;
+                }
+                break;
+            case 'I':
+                if (eval_result.clear != 4)
+                {
+                    result.like += p.hold_i;
+                }
+                break;
             }
-            break;
-        case 'I':
-            if (eval_result.clear != 4)
-            {
-                result.like += p.hold_i;
-            }
-            break;
-        }
-        safe += eval_result.clear - result.map_rise;
-        double field = eval_result.value * double(40 - safe) / 20;
-        if (safe <= 0 || node->row + result.map_rise - eval_result.clear >= 20)
-            result.death = 1;
-        result.under_attack -= std::min(result.under_attack, result.attack);
-        result.combo_attack += getComboAttack(result.combo) + getMulAttack(curAtk - getComboAttack(result.combo), result.combo);
-        result.b2b_attack += getB2bAttack(result.b2bcnt);
-        double rate = (1. / (depth + 1)) + 3;
-        result.max_combo = std::max(result.combo, result.max_combo);
-        result.value += ((0.
-            + ((result.attack * 256 * rate) * p.attack)
-            + eval_result.t2_value * (t_expect < 2 ? (1 - t_expect) * 256 : 128) * p.t2_slot
-            + ((safe >= 12 ? eval_result.t3_value * (t_expect < 1 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.under_attack / 10.0)) : 0) * p.t3_slot)
-            + (result.b2bcnt * result.b2b_attack * p.b2b)
-            + ((result.like + result.attack) * 128)
-            + (result.max_combo * result.combo_attack * p.combo)
-            ) * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_))
-            - result.death * 999999999.0
-            );
-        return result;
+            safe += eval_result.clear - result.map_rise;
+            if (safe <= 0 || node->row + result.map_rise - eval_result.clear >= 20)
+                result.death = 1;
+            result.like += result.attack;
+            int ua = result.under_attack;
+            result.board_fill_diff = int(std::max(0, result.board_fill - result.board_fill_prev));
+            result.under_attack = std::max(0, result.under_attack - result.attack);
+            result.attack = std::max(0, result.attack - ua);
+            double rate = (1. / (depth + 1)) + 3;
+            result.max_combo = std::max(result.combo, result.max_combo);
+            result.value += ((0.
+                + (((result.attack * 256 * rate) * p.attack)
+                    + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
+                    + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot)
+                    + (safe >= 10 ? (result.b2bcnt * (-10 + safe + eval_result.clear) * p.b2b) : !!result.b2bcnt * rate)
+                    + result.like * 32
+                    ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
+                ) * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_))
+                + (result.max_combo * (result.max_combo - 1) * p.combo)
+                - result.death * 999999999.0
+                );
+            result.board_fill_prev = result.board_fill;
+            return result;
     }
 
     size_t IO_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const

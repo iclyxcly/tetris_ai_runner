@@ -2519,6 +2519,14 @@ namespace ai_zzz
             break;
         }
         result.board_fill -= (eval_result.clear * 10) - 4;
+        if (eval_result.map->roof < 7 && result.b2bcnt > 0)
+        {
+            result.like += 25 * (7 + node.type != TSpinType::None + eval_result.clear == 4);
+        }
+        else if (eval_result.map->roof < 7)
+        {
+            result.like -= 25 * eval_result.clear;
+        }
         if (eval_result.count == 0 && result.map_rise == 0)
         {
             if (!result.pc)
@@ -2577,7 +2585,7 @@ namespace ai_zzz
                 + (((result.attack * 256 * rate) * p.attack)
                     + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
                     + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8) * (result.b2bcnt * 128) / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot)
-                    + (safe >= 10 ? (result.b2bcnt * (-10 + safe + eval_result.clear) * p.b2b) : !!result.b2bcnt * rate)
+                    + (safe >= 10 ? (!!result.b2bcnt * (-10 + safe + eval_result.clear) * p.b2b) : !!result.b2bcnt * rate)
                     + result.like * 32
                     ) - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))
                 ) * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_))

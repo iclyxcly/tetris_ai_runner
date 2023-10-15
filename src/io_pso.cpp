@@ -647,7 +647,7 @@ int main(int argc, char const* argv[])
 	{
 		{}, 1, 1, 0.5, 0.01,
 	};
-	size_t elo_max_match = node_count;
+	size_t elo_max_match = rank_table.empty() ? node_count : rank_table.size();
 	size_t elo_min_match = elo_max_match / 2;
 
 	auto v = [&pso_cfg](double v, double r, double s)

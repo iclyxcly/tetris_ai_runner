@@ -25,7 +25,7 @@
 #include <unistd.h>
 #endif
 
-#define USE_V08 1
+#define USE_V08 0
 
 namespace zzz
 {
@@ -154,7 +154,6 @@ struct test_ai
     std::deque<int> recv_attack;
     int send_attack;
     int combo;
-    int max_combo;
     char hold;
     bool b2b;
     bool dead;
@@ -184,7 +183,6 @@ struct test_ai
         recv_attack.clear();
         send_attack = 0;
         combo = 0;
-        max_combo = 0;
         hold = ' ';
         b2b = false;
         dead = false;
@@ -243,7 +241,7 @@ struct test_ai
 
         char current = next.front();
         auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);
-        if(result.target == nullptr || result.target->low >= 20)
+        if(result.target == nullptr || result.target->low >= 20 || result.target->row >= 20)
         {
             dead = true;
             return;
@@ -365,7 +363,6 @@ struct test_ai
         {
             attack += 6;
         }
-        max_combo = std::max(combo, max_combo);
         ++total_block;
         total_attack += attack;
         send_attack = attack;
@@ -454,6 +451,23 @@ struct test_ai
     }
 };
 
+double elo_init()
+{
+    return 1500;
+}
+double elo_rate(double const& self_score, double const& other_score)
+{
+    return 1 / (1 + std::pow(10, -(self_score - other_score) / 400));
+}
+double elo_get_k(int curr, int max)
+{
+    return 20 * (max - curr) / max + 4;
+}
+double elo_calc(double const& self_score, double const& other_score, double const& win, int curr, int max)
+{
+    return self_score + elo_get_k(curr, max) * (win - elo_rate(self_score, other_score));
+}
+
 struct BaseNode
 {
     BaseNode *parent, *left, *right;
@@ -465,23 +479,13 @@ struct NodeData
 {
     NodeData()
     {
-        score = 0;
-        total_score = 0;
-        apl = 0;
-        app = 0;
-        total_apl = 0;
-        total_app = 0;
+        score = elo_init();
         best = std::numeric_limits<double>::quiet_NaN();
         match = 0;
         gen = 0;
     }
     char name[64];
     double score;
-    double total_score;
-    double apl;
-    double total_apl;
-    double total_app;
-    double app;
     double best;
     uint32_t match;
     uint32_t gen;
@@ -594,7 +598,7 @@ int main(int argc, char const *argv[])
     {
         {}, 1, 1, 0.5, 0.01,
     };
-    size_t elo_max_match = std::max<size_t>(node_count * 15, 256);
+    size_t elo_max_match = node_count * 2;
     size_t elo_min_match = elo_max_match / 2;
 
     auto v = [&pso_cfg](double v, double r, double s)
@@ -711,10 +715,7 @@ int main(int argc, char const *argv[])
             {
                 std::pair<size_t, size_t> ret;
                 ret.first = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
-                do
-                {
-                    ret.second = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
-                } while (ret.second == ret.first);
+                ret.second = static_cast<size_t>(ret.first == 0 ? 1 : ret.first - 1);
                 return ret;
             };
             test_ai ai1(global_ai, combo_table, combo_table_max);
@@ -849,7 +850,7 @@ int main(int argc, char const *argv[])
                 //     std::swap(round_ms_min, round_ms_max);
                 // }
                 // size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
-                size_t round_ms = 0;
+                size_t round_ms = 20;
                 size_t round_count = 3600;
                 ai1.init(m1->data.data, pso_cfg, round_ms);
                 ai2.init(m2->data.data, pso_cfg, round_ms);
@@ -860,50 +861,59 @@ int main(int argc, char const *argv[])
                 rank_table.erase(m1);
                 rank_table.erase(m2);
                 static double best_ai_score;
+                bool handle_elo_1;
+                bool handle_elo_2;
+                if ((m1->data.match > elo_min_match) == (m2->data.match > elo_min_match))
+                {
+                    handle_elo_1 = true;
+                    handle_elo_2 = true;
+                }
+                else
+                {
+                    handle_elo_1 = m2->data.match > elo_min_match;
+                    handle_elo_2 = !handle_elo_1;
+                }
                 double m1s = m1->data.score;
                 double m2s = m2->data.score;
-                double ai1_vs = ai1.total_clear == 0 ? 0. : static_cast<double>(ai1.total_attack) / ai1.total_block;
-                double ai2_vs = ai2.total_clear == 0 ? 0. : static_cast<double>(ai2.total_attack) / ai2.total_block;
-                double ai1vs = ai1_vs;
-                if (ai1.dead == ai2.dead)
+                double ai1_apl = ai1.total_clear == 0 ? 0. : 1. * ai1.total_attack / ai1.total_clear;
+                double ai2_apl = ai2.total_clear == 0 ? 0. : 1. * ai2.total_attack / ai2.total_clear;
+                int ai1_win = ai2.dead * 2 + (ai1_apl > ai2_apl);
+                int ai2_win = ai1.dead * 2 + (ai2_apl > ai1_apl);
+                if (ai1_win == ai2_win)
                 {
-                    if (ai1_vs > ai2_vs)
+                    if (handle_elo_1)
                     {
-                        double ai_2 = ai2_vs;
-                        ai2_vs -= ai1_vs;
-                        ai1_vs += ai_2;
+                        m1->data.score = elo_calc(m1s, m2s, 0.5, m1->data.match, elo_max_match);
                     }
-                    else if (ai2_vs > ai1_vs)
+                    if (handle_elo_2)
                     {
-                        double ai_1 = ai1_vs;
-                        ai1_vs -= ai2_vs;
-                        ai2_vs += ai_1;
+                        m2->data.score = elo_calc(m2s, m1s, 0.5, m2->data.match, elo_max_match);
                     }
-                    else
+                }
+                else if (ai1_win > ai2_win)
+                {
+                    if (handle_elo_1)
                     {
-                        ai1_vs += ai2_vs;
-                        ai2_vs += ai1vs;
+                        m1->data.score = elo_calc(m1s, m2s, 1, m1->data.match, elo_max_match);
+                    }
+                    if (handle_elo_2)
+                    {
+                        m2->data.score = elo_calc(m2s, m1s, 0, m2->data.match, elo_max_match);
                     }
                 }
                 else
                 {
-                    ai1_vs += !ai1.dead ? ai2_vs : -ai2_vs;
-                    ai2_vs += !ai2.dead ? ai1vs : -ai1vs;
+                    if (handle_elo_1)
+                    {
+                        m1->data.score = elo_calc(m1s, m2s, 0, m1->data.match, elo_max_match);
+                    }
+                    if (handle_elo_2)
+                    {
+                        m2->data.score = elo_calc(m2s, m1s, 1, m2->data.match, elo_max_match);
+                    }
                 }
-                ++m1->data.match;
-                ++m2->data.match;
-                m1->data.total_score += ai1_vs * 100;
-                m2->data.total_score += ai2_vs * 100;
-                m1->data.total_apl += static_cast<double>(ai1.total_attack) / (ai1.total_clear == 0 ? 1 : ai1.total_clear);
-                m1->data.total_app += static_cast<double>(ai1.total_attack) / ai1.total_block;
-                m2->data.total_apl += static_cast<double>(ai2.total_attack) / (ai2.total_clear == 0 ? 1 : ai2.total_clear);
-                m2->data.total_app += static_cast<double>(ai2.total_attack) / ai2.total_block;
-                m1->data.app = m1->data.total_app / m1->data.match;
-                m2->data.app = m2->data.total_app / m2->data.match;
-                m1->data.apl = m1->data.total_apl / m1->data.match;
-                m2->data.apl = m2->data.total_apl / m2->data.match;
-                m1->data.score = m1->data.total_score / m1->data.match;
-                m2->data.score = m2->data.total_score / m2->data.match;
+                m1->data.match += handle_elo_1;
+                m2->data.match += handle_elo_2;
                 rank_table.insert(m1);
                 rank_table.insert(m2);
 
@@ -917,15 +927,13 @@ int main(int argc, char const *argv[])
                         best_param = fopen("best_param.txt", "w");
                     }
 #if !USE_V08
-                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nsrs_ai.ai_config()->param = "
+                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\nsrs_ai.ai_config()->param = "
                         "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                         " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                         " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f};\n"
                         , node->data.name
                         , node->data.gen
                         , node->data.score
-                        , node->data.apl
-                        , node->data.app
                         , node->data.data.x[0]
                         , node->data.data.x[1]
                         , node->data.data.x[2]
@@ -959,15 +967,13 @@ int main(int argc, char const *argv[])
                     fclose(best_param);
                 };
 #else
-                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nsrs_ai.ai_config()->param = "
+                    fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\nsrs_ai.ai_config()->param = "
                         "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                         " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                         " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f};\n"
                         , node->data.name
                         , node->data.gen
                         , node->data.score
-                        , node->data.apl
-                        , node->data.app
                         , node->data.data.x[0]
                         , node->data.data.x[1]
                         , node->data.data.x[2]
@@ -1013,7 +1019,7 @@ int main(int argc, char const *argv[])
                         if (!view)
 #if !USE_V08
                             printf(
-                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
                                 "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                                 " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                                 " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
@@ -1021,8 +1027,6 @@ int main(int argc, char const *argv[])
                                 , node->data.name
                                 , node->data.gen
                                 , node->data.score
-                                , node->data.apl
-                                , node->data.app
                                 , node->data.data.x[0]
                                 , node->data.data.x[1]
                                 , node->data.data.x[2]
@@ -1055,7 +1059,7 @@ int main(int argc, char const *argv[])
                             );
 #else
                             printf(
-                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+                                "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
                                 "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                                 " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
                                 " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
@@ -1063,8 +1067,6 @@ int main(int argc, char const *argv[])
                                 , node->data.name
                                 , node->data.gen
                                 , node->data.score
-                                , node->data.apl
-                                , node->data.app
                                 , node->data.data.x[0]
                                 , node->data.data.x[1]
                                 , node->data.data.x[2]
@@ -1106,20 +1108,15 @@ int main(int argc, char const *argv[])
                     {
                         data->best = data->best * 0.95 + data->score * 0.05;
                     }
-                    data->total_score = 0;
                     data->match = 0;
-                    data->total_apl = 0;
-                    data->total_app = 0;
-                    data->app = 0;
-                    data->apl = 0;
+                    data->score = elo_init();
                     ++data->gen;
                     rank_table.erase(node);
-                    data->score = 0;
                     rank_table.insert(node);
-                    //if (node->data.name[0] == '*' || node->data.name[0] == '-')
-                    //{
-                    //    return;
-                    //}
+                    if (node->data.name[0] == '*' || node->data.name[0] == '-')
+                    {
+                        return;
+                    }
                     double best;
                     pso_data* best_data = nullptr;
                     for (auto it = rank_table.begin(); it != rank_table.end(); ++it)
@@ -1136,15 +1133,11 @@ int main(int argc, char const *argv[])
                     }
                     pso_logic(pso_cfg, best_data != nullptr ? *best_data : data->data, data->data, mt);
                 };
-                bool check = m1->data.match >= elo_min_match;
-                bool check_2 = m2->data.match >= elo_min_match;
-                bool reset = m1->data.score < m1->data.best;
-                bool reset_2 = m2->data.score < m2->data.best;
-                if (m1->data.match >= elo_max_match || (check && reset))
+                if (m1->data.match >= elo_max_match)
                 {
                     do_pso_logic(m1);
                 }
-                if (m2->data.match >= elo_max_match || (check_2 && reset_2))
+                if (m2->data.match >= elo_max_match)
                 {
                     do_pso_logic(m2);
                 }
@@ -1158,7 +1151,7 @@ int main(int argc, char const *argv[])
         rank_table_lock.lock();
 #if !USE_V08
         printf(
-            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
             "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
             " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
             " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
@@ -1166,8 +1159,6 @@ int main(int argc, char const *argv[])
             , node->data.name
             , node->data.gen
             , node->data.score
-            , node->data.apl
-            , node->data.app
             , node->data.data.x[0]
             , node->data.data.x[1]
             , node->data.data.x[2]
@@ -1200,7 +1191,7 @@ int main(int argc, char const *argv[])
         );
 #else
         printf(
-            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\n//APL: %.2f\n//APP: %.2f\nPARAM: "
+            "\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
             "{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
             " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
             " %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}\n"
@@ -1208,8 +1199,6 @@ int main(int argc, char const *argv[])
             , node->data.name
             , node->data.gen
             , node->data.score
-            , node->data.apl
-            , node->data.app
             , node->data.data.x[0]
             , node->data.data.x[1]
             , node->data.data.x[2]

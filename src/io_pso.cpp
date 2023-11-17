@@ -151,6 +151,8 @@ struct test_ai
 	int combo_table_max;
 	std::vector<char> next;
 	std::deque<int> recv_attack;
+	std::deque<int> recv_attack_timestamp;
+	std::deque<std::pair<int, int>> attack_buffer;
 	int send_attack;
 	int combo;
 	char hold;
@@ -160,6 +162,7 @@ struct test_ai
 	int total_clear;
 	int total_attack;
 	int total_receive;
+	int timestamp;
 
 #if !USE_V08
 	test_ai(m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_tspin::Search>& global_ai, int const* _combo_table, int _combo_table_max)
@@ -185,21 +188,20 @@ struct test_ai
 		r_garbage.seed(r_next());
 		next.clear();
 		recv_attack.clear();
+		recv_attack_timestamp.clear();
+		attack_buffer.clear();
 		send_attack = 0;
 		combo = 0;
 		hold = ' ';
 		b2b = 0;
 		dead = false;
-#if !USE_V08
 		next_length = 5;
-#else
-		next_length = 10;
-#endif
 		run_ms = round_ms;
 		total_block = 0;
 		total_clear = 0;
 		total_attack = 0;
 		total_receive = 0;
+		timestamp = 0;
 	}
 	m_tetris::TetrisNode const* node() const
 	{
@@ -227,19 +229,20 @@ struct test_ai
 		ai.search_config()->allow_d = true;
 		ai.search_config()->is_20g = false;
 		ai.search_config()->last_rotate = false;
+#if !USE_V08
 		ai.ai_config()->table = combo_table;
 		ai.ai_config()->table_max = combo_table_max;
-#if !USE_V08
 		ai.ai_config()->safe = ai.ai()->get_safe(map, next.front());
 		ai.status()->acc_value = 0;
 		ai_zzz::IO::Status::init_t_value(map, ai.status()->t2_value, ai.status()->t3_value);
 		ai.status()->b2b = !!b2b;
 #else
-		ai.status()->b2bcnt = b2b;
+		ai.status()->b2b = b2b;
 		ai.status()->is_margin = false;
-		ai.status()->board_fill = map.count;
-		ai.status()->max_combo = 0;
 		ai.status()->attack = 0;
+		ai.status()->b2b_attack = 0;
+		ai.status()->combo_attack = 0;
+		ai.status()->mul_attack = 0;
 #endif
 		ai.status()->death = 0;
 		ai.status()->pc = true;
@@ -251,7 +254,8 @@ struct test_ai
 
 		char current = next.front();
 		auto result = ai.run_hold(map, ai.context()->generate(current), hold, true, next.data() + 1, next_length, run_ms);
-		if (result.target == nullptr || result.target->row >= 20)
+		timestamp += 500; // 2pps
+		if (result.status.death || result.target == nullptr)
 		{
 			dead = true;
 			return;
@@ -272,10 +276,7 @@ struct test_ai
 				{
 					--b;
 					double f = log1p(b * 0.8);
-					while (f > 1)
-					{
-						--f;
-					}
+					f -= floor(f);
 					atk += (floor(1 + log1p((b) * 0.8)) + (b == 1 ? 0 : (1 + f) / 3));
 				}
 				--c;
@@ -392,7 +393,25 @@ struct test_ai
 		total_attack += attack;
 		send_attack = attack;
 		int cap = GARBAGE_CAP;
-		while (!recv_attack.empty())
+		if (recv_attack.empty() && send_attack > 0)
+		{
+			while (!attack_buffer.empty() && send_attack > 0)
+			{
+				if (attack_buffer.front().first <= send_attack)
+				{
+					send_attack -= attack_buffer.front().first;
+					attack_buffer.pop_front();
+					continue;
+				}
+				else
+				{
+					attack_buffer.front().first -= send_attack;
+					send_attack = 0;
+					break;
+				}
+			}
+		}
+		while (!recv_attack.empty() && recv_attack_timestamp.front() < timestamp)
 		{
 			if (send_attack > 0)
 			{
@@ -400,6 +419,7 @@ struct test_ai
 				{
 					send_attack -= recv_attack.front();
 					recv_attack.pop_front();
+					recv_attack_timestamp.pop_front();
 					continue;
 				}
 				else
@@ -426,6 +446,7 @@ struct test_ai
 				cap -= recv_attack.front();
 				line = recv_attack.front();
 				recv_attack.pop_front();
+				recv_attack_timestamp.pop_front();
 			}
 			total_receive += line;
 			for (int y = map.height - 1; y >= line; --y)
@@ -451,12 +472,19 @@ struct test_ai
 			}
 			if (limit) break;
 		}
+		while(!attack_buffer.empty() && attack_buffer.front().second < timestamp)
+		{
+			recv_attack.push_back(attack_buffer.front().first);
+			recv_attack_timestamp.push_back(attack_buffer.front().second + 500);
+			attack_buffer.pop_front();
+		}
 	}
-	void under_attack(int line)
+	void under_attack(int line, int timestamp)
 	{
 		if (line > 0)
 		{
-			recv_attack.emplace_back(line);
+			std::pair<int,int> insert(line, timestamp);
+			attack_buffer.emplace_back(insert);
 		}
 	}
 
@@ -486,15 +514,13 @@ struct test_ai
 			}
 			int ai1_atk = ai1.send_attack;
 			int ai2_atk = ai2.send_attack;
-			ai2_atk -= ai1.send_attack;
-			ai1_atk -= ai2.send_attack;
 			if (ai1_atk > ai2_atk)
 			{
-				ai2.under_attack(ai1_atk);
+				ai2.under_attack(ai1_atk - ai2_atk, ai2.timestamp + 500);
 			}
 			else if (ai2_atk > ai1_atk)
 			{
-				ai1.under_attack(ai2_atk);
+				ai1.under_attack(ai2_atk - ai1_atk, ai1.timestamp + 500);
 			}
 		}
 	}
@@ -510,7 +536,7 @@ double elo_rate(double const& self_score, double const& other_score)
 }
 double elo_get_k(int curr, int max)
 {
-	return 20 * (max - curr) / max + 4;
+	return 20 * (.0 + max - curr) / max + 4;
 }
 double elo_calc(double const& self_score, double const& other_score, double const& win, int curr, int max)
 {
@@ -531,11 +557,13 @@ struct NodeData
 		score = elo_init();
 		best = std::numeric_limits<double>::quiet_NaN();
 		match = 0;
+		ingame = 0;
 		gen = 0;
 	}
 	char name[64];
 	double score;
 	double best;
+	int ingame;
 	uint32_t match;
 	uint32_t gen;
 	pso_data data;
@@ -645,9 +673,9 @@ int main(int argc, char const* argv[])
 	}
 	pso_config pso_cfg =
 	{
-		{}, 1, 1, 0.5, 0.01,
+		{}, 5, 1, 0.5, 0.01,
 	};
-	size_t elo_max_match = rank_table.empty() ? node_count : rank_table.size();
+	size_t elo_max_match = 20;
 	size_t elo_min_match = elo_max_match / 2;
 
 	auto v = [&pso_cfg](double v, double r, double s)
@@ -696,33 +724,37 @@ int main(int argc, char const* argv[])
 #else
 		ai_zzz::IO_v08::Param p;
 
-		v(p.roof, 1000, 8);
-		v(p.col_trans, 1000, 8);
-		v(p.row_trans, 1000, 8);
-		v(p.hole_count, 1000, 8);
-		v(p.hole_line, 1000, 8);
-		v(p.well_depth, 1000, 8);
-		v(p.hole_depth, 1000, 8);
-		v(p.safe, 1000, 8);
-		v(p.b2b, 1000, 8);
-		v(p.attack, 1000, 8);
-		v(p.hold_t, 100, 2);
-		v(p.hold_i, 100, 2);
-		v(p.waste_t, 100, 2);
-		v(p.waste_i, 100, 2);
-		v(p.clear_1, 1000, 8);
-		v(p.clear_2, 1000, 8);
-		v(p.clear_3, 1000, 8);
-		v(p.clear_4, 100, 0.5);
-		v(p.t2_slot, 100, 0.5);
-		v(p.t3_slot, 100, 0.5);
-		v(p.tspin_mini, 100, 2);
-		v(p.tspin_1, 100, 2);
-		v(p.tspin_2, 100, 2);
-		v(p.tspin_3, 100, 2);
-		v(p.decision, 100, 2);
-		v(p.combo, 100, 2);
-		v(p.ratio, 10, 0.5);
+		v(p.col_trans, 1000, 0.5);
+		v(p.row_trans, 1000, 0.5);
+		v(p.hole_count, 1000, 0.5);
+		v(p.hole_line, 1000, 0.5);
+		v(p.well_depth, 1000, 0.5);
+		v(p.hole_depth, 1000, 0.5);
+		v(p.straight_line, 1000, 0.5);
+		v(p.clear_width, 1000, 0.5);
+		v(p.wide_2, 1000, 0.5);
+		v(p.wide_3, 1000, 0.5);
+		v(p.wide_4, 1000, 0.5);
+		v(p.attack, 1000, 0.5);
+		v(p.base_attack, 1000, 0.5);
+		v(p.b2b, 1000, 0.5);
+		v(p.multiplier, 1000, 0.5);
+		v(p.combo, 1000, 0.5);
+		v(p.hold_t, 100, 0.5);
+		v(p.hold_i, 100, 0.5);
+		v(p.waste_t, 100, 0.5);
+		v(p.waste_i, 100, 0.5);
+		v(p.clear_1, 1000, 0.5);
+		v(p.clear_2, 1000, 0.5);
+		v(p.clear_3, 1000, 0.5);
+		v(p.clear_4, 1000, 0.5);
+		v(p.t2_slot, 1000, 0.5);
+		v(p.t3_slot, 1000, 0.5);
+		v(p.tspin_0, 1000, 0.5);
+		v(p.tspin_1, 1000, 0.5);
+		v(p.tspin_2, 1000, 0.5);
+		v(p.tspin_3, 1000, 0.5);
+		v(p.ratio, 10, 0.25);
 #endif
 		if (rank_table.empty())
 		{
@@ -731,12 +763,13 @@ int main(int argc, char const* argv[])
 			strncpy(init_node.name, "*default", sizeof init_node.name);
 			memset(&init_node.data, 0, sizeof init_node.data);
 			init_node.data.param = p;
+			//init_node.data.param = { 0.126747764, -0.138017199, 0.124111260, 0.131053768, 0.449016215, 0.220692113, 0.241273896, 0.027804458, -0.393665493, 0.170495149, -0.403987737, 1.690545236, 1.702081242, 0.427397540, -0.207415606, -0.885942479, 0.344909778, -0.076981372, -0.021547289, -0.097864741, -1.111095637, -0.438642574, -0.563260583, 0.189345313, 1.871735279, -0.514414893, 0.347466005, -0.123850151, 1.289692817, -0.116393161, -0.504206549 };
 			init_node.data.p = init_node.data.x;
 			rank_table.insert(new Node(init_node));
 		}
 	}
 
-	while (rank_table.size() < node_count)
+	while (rank_table.size() < 30)
 	{
 		NodeData init_node = rank_table.at(std::uniform_int_distribution<size_t>(0, rank_table.size() - 1)(mt))->data;
 
@@ -755,15 +788,31 @@ int main(int argc, char const* argv[])
 #endif
 	global_ai.prepare(10, 40);
 
-	for (size_t i = 1; i <= count; ++i)
+	for (size_t i = 0; i < rank_table.size(); ++i)
+	{
+		rank_table.at(i)->data.ingame = 0;
+	}
+	
+	bool matchmaking = false;
+	for (size_t i = 1; i <= count * 4/4; ++i)
 	{
 		threads.emplace_back([&, i]()
 			{
 				uint32_t index = i + 1;
-				auto rand_match = [&](auto& mt, size_t max)
+				auto rand_match = [&](auto& table)
 					{
 						std::pair<size_t, size_t> ret;
-						ret.first = std::uniform_int_distribution<size_t>(0, max - 1)(mt);
+						size_t lowest = INT_MAX;
+						for (size_t i = 0; i < table.size(); ++i)
+						{
+							auto const& data = table.at(i)->data;
+							const size_t matches = (data.gen * elo_max_match) + data.match + data.ingame;
+							if (matches < lowest && (data.match + data.ingame < elo_max_match))
+							{
+								lowest = matches;
+								ret.first = i;
+							}
+						}
 						ret.second = static_cast<size_t>(ret.first == 0 ? 1 : ret.first - 1);
 						return ret;
 					};
@@ -773,8 +822,15 @@ int main(int argc, char const* argv[])
 				rank_table_lock.unlock();
 				for (; ; )
 				{
+					if (matchmaking)
+					{
+						Sleep(100);
+						continue;
+					}
 					rank_table_lock.lock();
-					auto m12 = rand_match(mt, rank_table.size());
+					matchmaking = true;
+					auto m12 = rand_match(rank_table);
+					matchmaking = false;
 					auto m1 = rank_table.at(m12.first);
 					auto m2 = rank_table.at(m12.second);
 #if _MSC_VER
@@ -902,13 +958,17 @@ int main(int argc, char const* argv[])
 					//     std::swap(round_ms_min, round_ms_max);
 					// }
 					// size_t round_ms = std::uniform_int_distribution<size_t>(round_ms_min, round_ms_max)(mt);
-					size_t round_ms = 20;
-					size_t round_count = 1000;
+					size_t round_ms = 0;
+					size_t round_count = 3600;
 					ai1.init(m1->data.data, pso_cfg, round_ms);
 					ai2.init(m2->data.data, pso_cfg, round_ms);
+					++m1->data.ingame;
+					++m2->data.ingame;
 					rank_table_lock.unlock();
 					test_ai::match(ai1, ai2, view_func, round_count);
 					rank_table_lock.lock();
+					--m1->data.ingame;
+					--m2->data.ingame;
 
 					rank_table.erase(m1);
 					rank_table.erase(m2);
@@ -948,9 +1008,9 @@ int main(int argc, char const* argv[])
 							FILE* best_param = fopen("best_param.txt", "w");
 #if !USE_V08
 							fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//DIFF: %.2f\nsrs_ai.ai_config()->param = "
-								"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-								" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-								" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+								"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+								" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+								" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 								, node->data.name
 								, node->data.gen
 								, node->data.score
@@ -987,9 +1047,9 @@ int main(int argc, char const* argv[])
 							);
 #else
 							fprintf(best_param, "//NAME: %s\n//GEN: %d\n//SCORE: %.2f\n//DIFF: %.2f\nsrs_ai.ai_config()->param = "
-								"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-								" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-								" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+								"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+								" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+								" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 								, node->data.name
 								, node->data.gen
 								, node->data.score
@@ -1021,6 +1081,10 @@ int main(int argc, char const* argv[])
 								, node->data.data.x[24]
 								, node->data.data.x[25]
 								, node->data.data.x[26]
+								, node->data.data.x[27]
+								, node->data.data.x[28]
+								, node->data.data.x[29]
+								, node->data.data.x[30]
 							);
 #endif
 							fclose(best_param);
@@ -1050,9 +1114,9 @@ int main(int argc, char const* argv[])
 #if !USE_V08
 									printf(
 										"\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nDIFF: %.2f\nPARAM: "
-										"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-										" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-										" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+										"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+										" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+										" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 										"\n________________________________________________\n"
 										, node->data.name
 										, node->data.gen
@@ -1091,9 +1155,9 @@ int main(int argc, char const* argv[])
 #else
 									printf(
 										"\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nDIFF: %.2f\nPARAM: "
-										"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-										" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-										" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+										"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+										" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+										" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 										"\n________________________________________________\n"
 										, node->data.name
 										, node->data.gen
@@ -1126,6 +1190,10 @@ int main(int argc, char const* argv[])
 										, node->data.data.x[24]
 										, node->data.data.x[25]
 										, node->data.data.x[26]
+										, node->data.data.x[27]
+										, node->data.data.x[28]
+										, node->data.data.x[29]
+										, node->data.data.x[30]
 									);
 #endif
 								}
@@ -1186,9 +1254,9 @@ int main(int argc, char const* argv[])
 #if !USE_V08
 			printf(
 				"\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
-				"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-				" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-				" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+				"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+				" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+				" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 				"\n________________________________________________\n"
 				, node->data.name
 				, node->data.gen
@@ -1226,9 +1294,9 @@ int main(int argc, char const* argv[])
 #else
 			printf(
 				"\n________________________________________________\nNAME: %s\nGEN: %d\nSCORE: %.2f\nPARAM: "
-				"{%.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-				" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f,"
-				" %.27f, %.27f, %.27f, %.27f, %.27f, %.27f, %.27f}; \n"
+				"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+				" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
+				" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 				"\n________________________________________________\n"
 				, node->data.name
 				, node->data.gen
@@ -1260,6 +1328,10 @@ int main(int argc, char const* argv[])
 				, node->data.data.x[24]
 				, node->data.data.x[25]
 				, node->data.data.x[26]
+				, node->data.data.x[27]
+				, node->data.data.x[28]
+				, node->data.data.x[29]
+				, node->data.data.x[30]
 			);
 #endif
 			rank_table_lock.unlock();
@@ -1352,7 +1424,7 @@ int main(int argc, char const* argv[])
 			for (size_t i = begin; i < end && i < rank_table.size(); ++i)
 			{
 				auto node = rank_table.at(i);
-				printf("#%3d | SCORE = %12.1f | HIGHSCORE = %12.1f | MATCH = %3zd | GEN = %5zd | NAME = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.name);
+				printf("#%3d | SCORE = %12.1f | HIGHSCORE = %12.1f | MATCH = %3zd | GEN = %5zd | INGAME = %d | NAME = %s\n", i + 1, node->data.score, node->data.best, node->data.match, node->data.gen, node->data.ingame,  node->data.name);
 			}
 			rank_table_lock.unlock();
 			return true;
@@ -1428,7 +1500,7 @@ int main(int argc, char const* argv[])
 				printf(
 					"{%.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
 					" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f,"
-					" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}\n"
+					" %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f, %.9f}; \n"
 					, node->p[0]
 					, node->p[1]
 					, node->p[2]
@@ -1456,6 +1528,10 @@ int main(int argc, char const* argv[])
 					, node->p[24]
 					, node->p[25]
 					, node->p[26]
+					, node->p[27]
+					, node->p[28]
+					, node->p[29]
+					, node->p[30]
 				);
 #endif
 			}

@@ -320,38 +320,40 @@ namespace ai_zzz
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
         struct Param {
-            double roof = 128;
-            double col_trans = 160;
-            double row_trans = 160;
-            double hole_count = 80;
-            double hole_line = 380;
-            double well_depth = 100;
-            double hole_depth = 40;
-            double safe = 0;
-            double b2b = 128;
-            double attack = 1;
-            double hold_t = 4;
-            double hold_i = 2;
-            double waste_t = 0;
-            double waste_i = 0;
-            double clear_1 = 0;
-            double clear_2 = 0;
-            double clear_3 = 0;
-            double clear_4 = 1;
-            double t2_slot = 1.5;
-            double t3_slot = 1;
-            double tspin_mini = 0;
-            double tspin_1 = 0;
+			double col_trans = 0.5;
+			double row_trans = 0.5;
+			double hole_count = 0.5;
+			double hole_line = 0.5;
+			double well_depth = 0.5;
+			double hole_depth = 0.5;
+			double straight_line = 0.5;
+			double clear_width = 0.125;
+			double wide_2 = -0;
+			double wide_3 = 0;
+			double wide_4 = 0;
+            double attack = 8;
+            double base_attack = 8;
+            double b2b = 8;
+            double multiplier = 8;
+            double combo = 8;
+            double hold_t = 1;
+            double hold_i = 1;
+            double waste_t = -2;
+            double waste_i = -1;
+            double clear_1 = -16;
+            double clear_2 = -16;
+            double clear_3 = -16;
+            double clear_4 = 16;
+            double t2_slot = 8;
+            double t3_slot = 0;
+            double tspin_0 = 2;
+            double tspin_1 = 4;
             double tspin_2 = 8;
-            double tspin_3 = 12;
-            double decision = 6; // lower=b2b, higher=combo
-            double combo = 30;
+            double tspin_3 = 4;
             double ratio = 1.5;
         };
         struct Config
         {
-            int const* table;
-            int table_max;
             Param param;
         };
         struct Result
@@ -365,22 +367,21 @@ namespace ai_zzz
         };
         struct Status
         {
-            int max_combo;
-            int death;
             int combo;
-            int attack;
             int under_attack;
-            int under_attack_PRE; //soon
             int map_rise;
-            int b2bcnt;
+            int b2b;
+            double attack;
+            double b2b_attack;
+            double mul_attack;
+            double combo_attack;
             bool pc;
-            int board_fill;
-            int board_fill_prev;
-            int board_fill_diff;
+            bool death;
             bool is_margin;
+            double margin_multiplier;
             double like;
             double value;
-            clock_t start_count;
+            time_t start_count;
             bool operator < (Status const&) const;
         };
     public:

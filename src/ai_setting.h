@@ -1,4 +1,5 @@
-#define USE_MISAMINO 0 // needs to be enabled to run unmodified zzztetr, needs to be disabled to run zzztetr
+#define USE_MISAMINO 1 // needs to be enabled to run unmodified zzztetr, needs to be disabled to run zzztetr
+#define PERFORMANCE_MODE 1
 #define USE_THREAD 1
 #define USE_V08 1
 #define USE_PC 0

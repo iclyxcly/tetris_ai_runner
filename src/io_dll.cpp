@@ -1,6 +1,6 @@
 #include <iostream>
 #include "tetris_core.h"
-#include "search_tspin.h"
+#include "search_amini.h"
 #include "ai_zzz.h"
 #include "rule_io.h"
 #include "random.h"
@@ -15,7 +15,7 @@
 #include <cstring>
 
 using JSON = nlohmann::json;
-typedef m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_tspin::Search> Bot;
+typedef m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_amini::Search> Bot;
 struct BotInstance
 {
     uint64_t bot_id;

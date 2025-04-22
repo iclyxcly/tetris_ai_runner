@@ -1887,15 +1887,11 @@ namespace ai_zzz
         {
             if (eval_result.clear == 1 && node.is_mini_ready)
             {
-                node.type = TSpinType::TSpinMini;
+                node.type = ASpinType::TSpinMini;
             }
             else if (node.is_ready)
             {
-                node.type = TSpinType::TSpin;
-            }
-            else
-            {
-                node.type = TSpinType::None;
+                node.type = ASpinType::TSpin;
             }
         }
         Status result;
@@ -1960,12 +1956,12 @@ namespace ai_zzz
             update_like((node->status.t == 'T') * p.waste_t);
             break;
         case 1:
-            if (node.type == TSpinType::TSpinMini)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
             {
                 attack = get_attack(0, ++result.combo, ++result.b2b);
                 update_like(p.tspin_mini);
             }
-            else if (node.type == TSpinType::TSpin)
+            else if (node.type == ASpinType::TSpin)
             {
                 attack = get_attack(2, ++result.combo, ++result.b2b);
                 update_like(p.tspin_1);
@@ -1981,7 +1977,12 @@ namespace ai_zzz
             }
             break;
         case 2:
-            if (node.type != TSpinType::None)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
+            {
+                attack = get_attack(1, ++result.combo, ++result.b2b);
+                update_like(p.tspin_mini);
+            }
+            else if (node.type != ASpinType::None)
             {
                 attack = get_attack(4, ++result.combo, ++result.b2b);
                 update_like(p.tspin_2);
@@ -1997,7 +1998,12 @@ namespace ai_zzz
             }
             break;
         case 3:
-            if (node.type != TSpinType::None)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
+            {
+                attack = get_attack(2, ++result.combo, ++result.b2b);
+                update_like(p.tspin_mini);
+            }
+            else if (node.type != ASpinType::None)
             {
                 attack = get_attack(6, ++result.combo, ++result.b2b);
                 update_like(p.tspin_3);
@@ -2047,7 +2053,7 @@ namespace ai_zzz
             switch (env.hold)
             {
             case 'T':
-                if (node.type == TSpinType::None)
+                if (node.type == ASpinType::None)
                 {
                     update_like(double(20 + config_safe) * p.hold_t);
                 }
@@ -2408,24 +2414,18 @@ namespace ai_zzz
 
     IO_v08::Status IO_v08::get(TetrisNodeEx& node, Result const& eval_result, size_t depth, Status const& status, TetrisContext::Env const& env) const
     {
-
-
-        Status result = status;
         if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
         {
             if (eval_result.clear == 1 && node.is_mini_ready)
             {
-                node.type = TSpinType::TSpinMini;
+                node.type = ASpinType::TSpinMini;
             }
             else if (node.is_ready)
             {
-                node.type = TSpinType::TSpin;
-            }
-            else
-            {
-                node.type = TSpinType::None;
+                node.type = ASpinType::TSpin;
             }
         }
+        Status result = status;
         result.value = eval_result.value;
         auto& p = config_->param;
         int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next)
@@ -2467,12 +2467,12 @@ namespace ai_zzz
             }
             break;
         case 1:
-            if (node.type == TSpinType::TSpinMini)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
             {
                 result.like += p.tspin_mini;
                 result.attack += curAtk = get_attack(0, ++result.combo, ++result.b2bcnt);
             }
-            else if (node.type == TSpinType::TSpin)
+            else if (node.type == ASpinType::TSpin)
             {
                 result.like += p.tspin_1;
                 result.attack += curAtk = get_attack(2, ++result.combo, ++result.b2bcnt);
@@ -2487,7 +2487,12 @@ namespace ai_zzz
             }
             break;
         case 2:
-            if (node.type != TSpinType::None)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
+            {
+                result.like += p.tspin_mini;
+                result.attack += curAtk = get_attack(1, ++result.combo, ++result.b2bcnt);
+            }
+            else if (node.type != ASpinType::None)
             {
                 result.like += p.tspin_2;
                 result.attack += curAtk = get_attack(4, ++result.combo, ++result.b2bcnt);
@@ -2502,7 +2507,12 @@ namespace ai_zzz
             }
             break;
         case 3:
-            if (node.type != TSpinType::None)
+            if (node.type == ASpinType::TSpinMini || node.type == ASpinType::ASpinMini)
+            {
+                result.like += p.tspin_mini;
+                result.attack += curAtk = get_attack(2, ++result.combo, ++result.b2bcnt);
+            }
+            else if (node.type != ASpinType::None)
             {
                 result.like += p.tspin_3;
                 result.attack += curAtk = get_attack(6, ++result.combo, ++result.b2bcnt);
@@ -2522,7 +2532,7 @@ namespace ai_zzz
         result.board_fill -= (eval_result.clear * 10) - 4;
         if (eval_result.map->roof < 7 && result.b2bcnt > 0)
         {
-            result.like += 25 * (7 + node.type != TSpinType::None + eval_result.clear == 4);
+            result.like += 25 * (7 + node.type != ASpinType::None + eval_result.clear == 4);
         }
         else if (eval_result.map->roof < 7)
         {
@@ -2560,7 +2570,7 @@ namespace ai_zzz
             switch (env.hold)
             {
             case 'T':
-                if (node.type == TSpinType::None)
+                if (node.type == ASpinType::None)
                 {
                     result.like += p.hold_t;
                 }

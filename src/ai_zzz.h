@@ -1,6 +1,7 @@
 ﻿
 #include "tetris_core.h"
 #include "search_tspin.h"
+#include "search_amini.h"
 #include <array>
 
 namespace ai_zzz
@@ -222,8 +223,8 @@ namespace ai_zzz
     class IO
     {
     public:
-        typedef search_tspin::Search::TSpinType TSpinType;
-        typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        typedef search_amini::Search::ASpinType ASpinType;
+        typedef search_amini::Search::TetrisNodeWithASpinType TetrisNodeEx;
         struct Param {
             double base = 40;
             double roof = 160;
@@ -270,7 +271,7 @@ namespace ai_zzz
             int16_t count;
             int16_t t2_value;
             int16_t t3_value;
-            TSpinType t_spin;
+            ASpinType a_spin;
             m_tetris::TetrisMap const* map;
         };
         struct Status
@@ -317,8 +318,8 @@ namespace ai_zzz
     class IO_v08
     {
     public:
-        typedef search_tspin::Search::TSpinType TSpinType;
-        typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
+        typedef search_amini::Search::ASpinType ASpinType;
+        typedef search_amini::Search::TetrisNodeWithASpinType TetrisNodeEx;
         struct Param {
             double roof = 128;
             double col_trans = 160;

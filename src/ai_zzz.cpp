@@ -2023,7 +2023,7 @@ namespace ai_zzz
         }
         if (result.is_margin)
         {
-            attack += (int)std::floor((((clock() - result.start_count) / 1000.0) * GARBAGE_INCREASE) * attack);
+            attack += (int)std::floor((((clock() - result.start_count) / CLOCKS_PER_SEC) * GARBAGE_INCREASE) * attack);
         }
         int upcomeAtt = result.under_attack;
         result.under_attack = std::max(0, result.under_attack - attack);
@@ -2428,7 +2428,8 @@ namespace ai_zzz
         }
         result.value = eval_result.value;
         auto& p = config_->param;
-        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next) : eval_result.map->roof;
+        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next)
+                                                         : eval_result.map->roof;
         int curAtk = 0;
         auto get_attack = [&](int base_atk, int combo, int b2b)
             {
@@ -2572,7 +2573,7 @@ namespace ai_zzz
                 break;
             }
             safe += eval_result.clear - result.map_rise;
-            if (safe <= 0 || node->row + result.map_rise - eval_result.clear >= 20)
+            if (safe <= 0 || node->row + result.map_rise >= 21)
                 result.death = 1;
             result.like += result.attack;
             int ua = result.under_attack;
@@ -2598,7 +2599,7 @@ namespace ai_zzz
 
     size_t IO_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
-        if (up >= 20)
+        if (up >= 21)
         {
             return 1;
         }

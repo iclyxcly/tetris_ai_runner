@@ -1,7 +1,4 @@
-﻿
-#pragma once
-
-#include "rule_io.h"
+﻿#include "rule_io.h"
 
 using namespace m_tetris;
 using namespace m_tetris_rule_tools;
@@ -20,7 +17,7 @@ namespace rule_io
     {
         TetrisBlockStatus status =
         {
-            T, 3, 21, 0
+            T, 3, 22, 0
         };
         return status;
     }

@@ -2064,7 +2064,7 @@ namespace ai_zzz
             + (((result.attack * 256 * rate) * p.attack) 
             + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot 
             + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8)  / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot) 
-            + (p.b2b * (!!result.b2bcnt + ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 4 : 0) * (result.combo + 1))) * safe)
+            + (p.b2b * ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 8 : 0) * (result.combo + 1)) * (safe >= 10 ? 32 * result.b2bcnt : safe))
             + result.like * 32) 
             - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))) 
             * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_)) 
@@ -2290,7 +2290,7 @@ namespace ai_zzz
         result.fill = float(map.count) / (map.width * (map.height - config_->safe));
         result.hole = float(v.HoleCountSrc) / (map.height - config_->safe);
         result.new_hole = v.HoleCount > v.HoleCountSrc ? float(v.HoleCount - v.HoleCountSrc) / map.height : 0;
-        result.soft_drop = !node->open(src_map, node);
+        result.soft_drop = !node->open(src_map);
         return result;
     }
 

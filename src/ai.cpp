@@ -35,7 +35,7 @@ extern "C" void attach_init()
     ege::mtsrand((unsigned int)(time(nullptr)));
 }
 
-//·µ»ØAIÃû×Ö£¬»áÏÔÊ¾ÔÚ½çÃæÉÏ
+//ï¿½ï¿½ï¿½ï¿½AIï¿½ï¿½ï¿½Ö£ï¿½ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½Ú½ï¿½ï¿½ï¿½ï¿½ï¿½
 extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 {
     static std::string name = tetris_ai.ai_name();
@@ -44,23 +44,23 @@ extern "C" DECLSPEC_EXPORT char const *WINAPI Name()
 
 /*
  ***********************************************************************************************
- * ÓÃÓÚ¶ànext°æ±¾µÄST...ÎÒ×Ô¼ºMOD¹ýµÄ...²ÎÓë±ÈÈühttp://misakamm.com/blog/504Çë²ÎÕÕdemo.cppµÄAIPath
+ * ï¿½ï¿½ï¿½Ú¶ï¿½nextï¿½æ±¾ï¿½ï¿½ST...ï¿½ï¿½ï¿½Ô¼ï¿½MODï¿½ï¿½ï¿½ï¿½...ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½http://misakamm.com/blog/504ï¿½ï¿½ï¿½ï¿½ï¿½demo.cppï¿½ï¿½AIPath
  ***********************************************************************************************
- * path ÓÃÓÚ½ÓÊÕ²Ù×÷¹ý³Ì²¢·µ»Ø£¬²Ù×÷×Ö·û¼¯£º
- *      'l': ×óÒÆÒ»¸ñ
- *      'r': ÓÒÒÆÒ»¸ñ
- *      'd': ÏÂÒÆÒ»¸ñ
- *      'L': ×óÒÆµ½Í·
- *      'R': ÓÒÒÆµ½Í·
- *      'D': ÏÂÒÆµ½µ×£¨µ«²»Õ³ÉÏ£¬¿É¼ÌÐøÒÆ¶¯£©
- *      'z': ÄæÊ±ÕëÐý×ª
- *      'c': Ë³Ê±ÕëÐý×ª
- * ×Ö·û´®Ä©Î²Òª¼Ó'\0'£¬±íÊ¾ÂäµØ²Ù×÷£¨»òÓ²½µÂä£©
+ * path ï¿½ï¿½ï¿½Ú½ï¿½ï¿½Õ²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ì²ï¿½ï¿½ï¿½ï¿½Ø£ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö·ï¿½ï¿½ï¿½ï¿½ï¿½
+ *      'l': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'r': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'd': ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½
+ *      'L': ï¿½ï¿½ï¿½Æµï¿½Í·
+ *      'R': ï¿½ï¿½ï¿½Æµï¿½Í·
+ *      'D': ï¿½ï¿½ï¿½Æµï¿½ï¿½×£ï¿½ï¿½ï¿½ï¿½ï¿½Õ³ï¿½Ï£ï¿½ï¿½É¼ï¿½ï¿½ï¿½ï¿½Æ¶ï¿½ï¿½ï¿½
+ *      'z': ï¿½ï¿½Ê±ï¿½ï¿½ï¿½ï¿½×ª
+ *      'c': Ë³Ê±ï¿½ï¿½ï¿½ï¿½×ª
+ * ï¿½Ö·ï¿½ï¿½ï¿½Ä©Î²Òªï¿½ï¿½'\0'ï¿½ï¿½ï¿½ï¿½Ê¾ï¿½ï¿½Ø²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ó²ï¿½ï¿½ï¿½ä£©
  *
- * ±¾º¯ÊýÖ§³ÖÈÎÒâÂ·¾¶²Ù×÷£¬Èô²»ÐèÒª´Ëº¯ÊýÖ»ÏëÊ¹ÓÃÉÏÃæÒ»¸öµÄ»°£¬ÔòÉ¾µô±¾º¯Êý¼´¿É
+ * ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö§ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Â·ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Òªï¿½Ëºï¿½ï¿½ï¿½Ö»ï¿½ï¿½Ê¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½Ä»ï¿½ï¿½ï¿½ï¿½ï¿½É¾ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
  *
  ***********************************************************************************************
- * ½«´ËÎÄ¼þ(ai.cpp)´Ó¹¤³ÌÅÅ³ý,Ôö¼Ódemo.cpp½øÀ´¾Í¿ÉÒÔÁË.Èç¹ûÖ±½ÓÊ¹ÓÃ±ê×¼µÄSTµ÷ÓÃ...»á·¢ÉúÎ´¶¨ÒåµÄÐÐÎª!
+ * ï¿½ï¿½ï¿½ï¿½ï¿½Ä¼ï¿½(ai.cpp)ï¿½Ó¹ï¿½ï¿½ï¿½ï¿½Å³ï¿½,ï¿½ï¿½ï¿½ï¿½demo.cppï¿½ï¿½ï¿½ï¿½ï¿½Í¿ï¿½ï¿½ï¿½ï¿½ï¿½.ï¿½ï¿½ï¿½Ö±ï¿½ï¿½Ê¹ï¿½Ã±ï¿½×¼ï¿½ï¿½STï¿½ï¿½ï¿½ï¿½...ï¿½á·¢ï¿½ï¿½Î´ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Îª!
  ***********************************************************************************************
  */
 extern "C" DECLSPEC_EXPORT int WINAPI AIPath(int boardW, int boardH, char board[], char curPiece, int curX, int curY, int curR, char const *nextPiece, char path[])
@@ -567,19 +567,19 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
     if (target != nullptr)
     {
         ai_path = c2_ai.make_path(node, target, map);
-        node->open(map, node);
+        node->open(map);
         for (char c : ai_path)
         {
             switch (c)
             {
             case 'L':
-                while (node->move_left != nullptr && node->move_left->check(map, node))
+                while (node->move_left != nullptr && node->move_left->check(map))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'R':
-                while (node->move_right != nullptr && node->move_right->check(map, node))
+                while (node->move_right != nullptr && node->move_right->check(map))
                 {
                     node = node->move_right;
                 }
@@ -588,13 +588,13 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 node = node->drop(map);
                 break;
             case 'l':
-                if (node->move_left != nullptr && node->move_left->check(map, node))
+                if (node->move_left != nullptr && node->move_left->check(map))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'r':
-                if (node->move_right != nullptr && node->move_right->check(map, node))
+                if (node->move_right != nullptr && node->move_right->check(map))
                 {
                     node = node->move_right;
                 }
@@ -605,7 +605,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map, node))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;
@@ -622,7 +622,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map, node))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;
@@ -639,7 +639,7 @@ extern "C" DECLSPEC_EXPORT int __cdecl C2TetrisAI(c2_param *param)
                 {
                     if (wall_kick_node)
                     {
-                        if (wall_kick_node->check(map, node))
+                        if (wall_kick_node->check(map))
                         {
                             node = wall_kick_node;
                             break;

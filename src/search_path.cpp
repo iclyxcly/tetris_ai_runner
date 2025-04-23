@@ -45,7 +45,7 @@ namespace search_path
             {
                 TetrisNode const *node = node_search_[cache_index];
                 //x
-                if(node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map, node))
+                if (node->rotate_opposite && node_mark_.set(node->rotate_opposite, node, 'x') && node->rotate_opposite->check(map))
                 {
                     if(node->rotate_opposite->index_filtered == index)
                     {
@@ -57,7 +57,7 @@ namespace search_path
                     }
                 }
                 //z
-                if(node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map, node))
+                if (node->rotate_counterclockwise && node_mark_.set(node->rotate_counterclockwise, node, 'z') && node->rotate_counterclockwise->check(map))
                 {
                     if(node->rotate_counterclockwise->index_filtered == index)
                     {
@@ -69,7 +69,7 @@ namespace search_path
                     }
                 }
                 //c
-                if(node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map, node))
+                if (node->rotate_clockwise && node_mark_.set(node->rotate_clockwise, node, 'c') && node->rotate_clockwise->check(map))
                 {
                     if(node->rotate_clockwise->index_filtered == index)
                     {
@@ -81,7 +81,7 @@ namespace search_path
                     }
                 }
                 //l
-                if(node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map, node))
+                if (node->move_left && node_mark_.set(node->move_left, node, 'l') && node->move_left->check(map))
                 {
                     if(node->move_left->index_filtered == index)
                     {
@@ -93,7 +93,7 @@ namespace search_path
                     }
                 }
                 //r
-                if(node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map, node))
+                if (node->move_right && node_mark_.set(node->move_right, node, 'r') && node->move_right->check(map))
                 {
                     if(node->move_right->index_filtered == index)
                     {
@@ -105,10 +105,10 @@ namespace search_path
                     }
                 }
                 //L
-                if(node->move_left && node->move_left->check(map, node))
+                if (node->move_left && node->move_left->check(map))
                 {
                     TetrisNode const *node_L = node->move_left;
-                    while(node_L->move_left && node_L->move_left->check(map, node))
+                    while (node_L->move_left && node_L->move_left->check(map))
                     {
                         node_L = node_L->move_left;
                     }
@@ -125,10 +125,10 @@ namespace search_path
                     }
                 }
                 //R
-                if(node->move_right && node->move_right->check(map, node))
+                if (node->move_right && node->move_right->check(map))
                 {
                     TetrisNode const *node_R = node->move_right;
-                    while(node_R->move_right && node_R->move_right->check(map, node))
+                    while (node_R->move_right && node_R->move_right->check(map))
                     {
                         node_R = node_R->move_right;
                     }
@@ -145,7 +145,7 @@ namespace search_path
                     }
                 }
                 //d
-                if(node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map, node))
+                if (node->move_down && node_mark_.set(node->move_down, node, 'd') && node->move_down->check(map))
                 {
                     if(node->move_down->index_filtered == index)
                     {
@@ -178,7 +178,7 @@ namespace search_path
     std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
-        if(!node->check(map, node))
+        if (!node->check(map))
         {
             return &land_point_cache_;
         }
@@ -230,7 +230,7 @@ namespace search_path
                 for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
                 {
                     node = node_search_[cache_index];
-                    if(!node->open(map, node) && (!node->move_down || !node->move_down->check(map, node)))
+                    if (!node->open(map) && (!node->move_down || !node->move_down->check(map)))
                     {
                         if(node_mark_filtered_.mark(node))
                         {
@@ -238,32 +238,32 @@ namespace search_path
                         }
                     }
                     //x
-                    if(node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && !node->rotate_opposite->open(map, node) && node->rotate_opposite->check(map, node))
+                    if (node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && !node->rotate_opposite->open(map) && node->rotate_opposite->check(map))
                     {
                         node_search_.push_back(node->rotate_opposite);
                     }
                     //z
-                    if(node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && !node->rotate_counterclockwise->open(map, node) && node->rotate_counterclockwise->check(map, node))
+                    if (node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && !node->rotate_counterclockwise->open(map) && node->rotate_counterclockwise->check(map))
                     {
                         node_search_.push_back(node->rotate_counterclockwise);
                     }
                     //c
-                    if(node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && !node->rotate_clockwise->open(map, node) && node->rotate_clockwise->check(map, node))
+                    if (node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && !node->rotate_clockwise->open(map) && node->rotate_clockwise->check(map))
                     {
                         node_search_.push_back(node->rotate_clockwise);
                     }
                     //l
-                    if(node->move_left && node_mark_.mark(node->move_left) && !node->move_left->open(map, node) && node->move_left->check(map, node))
+                    if (node->move_left && node_mark_.mark(node->move_left) && !node->move_left->open(map) && node->move_left->check(map))
                     {
                         node_search_.push_back(node->move_left);
                     }
                     //r
-                    if(node->move_right && node_mark_.mark(node->move_right) && !node->move_right->open(map, node) && node->move_right->check(map, node))
+                    if (node->move_right && node_mark_.mark(node->move_right) && !node->move_right->open(map) && node->move_right->check(map))
                     {
                         node_search_.push_back(node->move_right);
                     }
                     //d
-                    if(node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map))
                     {
                         node_search_.push_back(node->move_down);
                     }
@@ -281,7 +281,7 @@ namespace search_path
                 for(size_t max_index = node_search_.size(); cache_index < max_index; ++cache_index)
                 {
                     node = node_search_[cache_index];
-                    if(!node->move_down || !node->move_down->check(map, node))
+                    if (!node->move_down || !node->move_down->check(map))
                     {
                         if(node_mark_filtered_.mark(node))
                         {
@@ -289,32 +289,32 @@ namespace search_path
                         }
                     }
                     //x
-                    if(node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && node->rotate_opposite->check(map, node))
+                    if (node->rotate_opposite && node_mark_.mark(node->rotate_opposite) && node->rotate_opposite->check(map))
                     {
                         node_search_.push_back(node->rotate_opposite);
                     }
                     //z
-                    if(node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && node->rotate_counterclockwise->check(map, node))
+                    if (node->rotate_counterclockwise && node_mark_.mark(node->rotate_counterclockwise) && node->rotate_counterclockwise->check(map))
                     {
                         node_search_.push_back(node->rotate_counterclockwise);
                     }
                     //c
-                    if(node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && node->rotate_clockwise->check(map, node))
+                    if (node->rotate_clockwise && node_mark_.mark(node->rotate_clockwise) && node->rotate_clockwise->check(map))
                     {
                         node_search_.push_back(node->rotate_clockwise);
                     }
                     //l
-                    if(node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map, node))
+                    if (node->move_left && node_mark_.mark(node->move_left) && node->move_left->check(map))
                     {
                         node_search_.push_back(node->move_left);
                     }
                     //r
-                    if(node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map, node))
+                    if (node->move_right && node_mark_.mark(node->move_right) && node->move_right->check(map))
                     {
                         node_search_.push_back(node->move_right);
                     }
                     //d
-                    if(node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map))
                     {
                         node_search_.push_back(node->move_down);
                     }

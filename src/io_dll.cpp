@@ -206,7 +206,7 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
     m_tetris::TetrisNode const *node = srs_ai->get(status);
     if (can_hold)
     {
-        auto run_result = srs_ai->run_hold(map, node, hold, true, next, maxDepth, time_t(20));
+        auto run_result = srs_ai->run_hold(map, node, hold, true, next, maxDepth, time_t(50));
         if (run_result.change_hold)
         {
             result += "v";
@@ -233,7 +233,7 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
     }
     else
     {
-        auto run_result = srs_ai->run(map, node, next, maxDepth, time_t(20));
+        auto run_result = srs_ai->run(map, node, next, maxDepth, time_t(50));
         if (run_result.target != nullptr)
         {
             std::vector<char> ai_path = srs_ai->make_path(node, run_result.target, map);

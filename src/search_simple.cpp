@@ -19,17 +19,17 @@ namespace search_simple
         {
             return path;
         }
-        while(node->status.r != land_point->status.r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map, node))
+        while (node->status.r != land_point->status.r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
         {
             path.push_back('z');
             node = node->rotate_counterclockwise;
         }
-        while(node->status.x < land_point->status.x && node->move_right && node->move_right->check(map, node))
+        while (node->status.x < land_point->status.x && node->move_right && node->move_right->check(map))
         {
             path.push_back('r');
             node = node->move_right;
         }
-        while(node->status.x > land_point->status.x && node->move_left && node->move_left->check(map, node))
+        while (node->status.x > land_point->status.x && node->move_left && node->move_left->check(map))
         {
             path.push_back('l');
             node = node->move_left;
@@ -39,7 +39,7 @@ namespace search_simple
             path.push_back('D');
             return path;
         }
-        while(node->status.y > land_point->status.y && node->move_down && node->move_down->check(map, node))
+        while (node->status.y > land_point->status.y && node->move_down && node->move_down->check(map))
         {
             path.push_back('d');
             node = node->move_down;
@@ -65,7 +65,7 @@ namespace search_simple
     std::vector<TetrisNode const *> const *Search::search(TetrisMap const &map, TetrisNode const *node, size_t depth)
     {
         land_point_cache_.clear();
-        if(!node->check(map, node))
+        if (!node->check(map))
         {
             return &land_point_cache_;
         }
@@ -84,20 +84,19 @@ namespace search_simple
             {
                 push(node_mark_filtered_, land_point_cache_, rotate->drop(map));
                 TetrisNode const *left = rotate->move_left;
-                while(left != nullptr && left->check(map, node))
+                while (left != nullptr && left->check(map))
                 {
                     push(node_mark_filtered_, land_point_cache_, left->drop(map));
                     left = left->move_left;
                 }
                 TetrisNode const *right = rotate->move_right;
-                while(right != nullptr && right->check(map, node))
+                while (right != nullptr && right->check(map))
                 {
                     push(node_mark_filtered_, land_point_cache_, right->drop(map));
                     right = right->move_right;
                 }
                 rotate = rotate->rotate_counterclockwise;
-            }
-            while(rotate != nullptr  && rotate != node && rotate->check(map, node));
+            } while (rotate != nullptr && rotate != node && rotate->check(map));
         }
         return &land_point_cache_;
     }

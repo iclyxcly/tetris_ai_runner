@@ -420,7 +420,7 @@ struct test_ai
         {
             next.push_back(ai.context()->convert(static_cast<size_t>(r1.real() * 7)));
         }
-        return !ai.context()->generate(next.front())->check(map, node) || map.roof >= map.height;
+        return !ai.context()->generate(next.front())->check(map) || map.roof >= map.height;
     }
     void run(int enemy_combo, int enemy_point, int round, m_tetris::TetrisMap const &enemy_map)
     {

@@ -14,18 +14,23 @@ namespace search_amini
         {
             None,
             TSpin,
+            AllSpin,
             TSpinMini,
-            ASpinMini
+            ASpinMini,
         };
         struct Config
         {
             bool allow_rotate_move = false;
             bool allow_180 = true;
-            bool allow_d = true;
+            bool allow_d = false;
             bool allow_D = true;
             bool allow_LR = true;
             bool is_20g = false;
-            bool last_rotate = false; // bug
+            bool last_rotate = false;
+            bool is_amini = true;
+            bool is_aspin = false;
+            bool is_tspin = true;
+            bool allow_immobile_t = true;
         };
         struct TetrisNodeWithASpinType
         {

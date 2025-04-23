@@ -8,14 +8,10 @@
 #include <vector>
 #include <nlohmann/json.hpp>
 #include <mutex>
-#include <algorithm>
 #include <string>
-#include <future>
-#include <chrono>
-#include <cstring>
 
 using JSON = nlohmann::json;
-typedef m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO_v08, search_amini::Search> Bot;
+typedef m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_amini::Search> Bot;
 struct BotInstance
 {
     uint64_t bot_id;
@@ -26,12 +22,60 @@ struct BotInstance
         bot = std::make_unique<Bot>();
         bot->prepare(10, 40);
     }
-    void new_game()
+    void new_game(const char* raw_cfg)
     {
+        JSON cfg = JSON::parse(raw_cfg);
         start_time = clock();
         margin_start_time = 0;
         elapsed_time = 0;
-        bot->status()->is_margin = false;
+        bot->ai_config()->is_margin = false;
+        bot->ai_config()->season_2 = cfg["season"].get<int>() == 2;
+
+        struct ConfigFlags
+        {
+            bool is_aspin;
+            bool is_amini;
+            bool is_tspin;
+        };
+
+        static const std::unordered_map<std::string, ConfigFlags> bonus_map = {
+            {"all-mini", {false, true, true}},
+            {"all-mini+", {false, true, true}},
+            {"handheld", {false, true, true}},
+            {"mini-only", {false, true, true}},
+            {"all", {true, false, false}},
+            {"all+", {true, false, false}},
+            {"stupid", {true, false, false}},
+            {"T-spins", {false, false, true}},
+            {"T-spins+", {false, false, true}},
+            {"none", {false, false, false}},
+        };
+
+        auto &config = *bot->search_config();
+        std::string bonus = cfg["bonus"].get<std::string>();
+
+        config.allow_rotate_move = false;
+        config.allow_180 = cfg["allow_180"].get<bool>();
+        config.allow_D = true;
+        config.allow_LR = false;
+        config.allow_d = false;
+        config.last_rotate = false;
+        config.is_20g = false;
+        config.allow_immobile_t = bonus.back() == '+' || bonus == "stupid";
+
+        auto it = bonus_map.find(bonus);
+        if (it != bonus_map.end())
+        {
+            config.is_aspin = it->second.is_aspin;
+            config.is_amini = it->second.is_amini;
+            config.is_tspin = it->second.is_tspin;
+        }
+        else
+        {
+            config.is_aspin = false;
+            config.is_amini = false;
+            config.is_tspin = false;
+        }
     }
 };
 
@@ -86,7 +130,7 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
     BotInstance &bot = *it;
 
     auto &srs_ai = bot.bot;
-
+    
     bool can_hold = data["can_hold"].get<bool>();
     bool can_pc = data["can_pc"].get<bool>();
     char active = data["active"].get<std::string>()[0];
@@ -119,13 +163,6 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
             }
         }
     }
-    srs_ai->search_config()->allow_rotate_move = false;
-    srs_ai->search_config()->allow_180 = true;
-    srs_ai->search_config()->allow_D = true;
-    srs_ai->search_config()->allow_LR = false;
-    srs_ai->search_config()->allow_d = false;
-    srs_ai->search_config()->last_rotate = false;
-    srs_ai->search_config()->is_20g = false;
 
     srs_ai->ai_config()->param = {128.848632018967037993206758983, 159.486229165944052965642185882, 161.917442316092603959987172857, 81.770591639349177626172604505, 381.778776257560934936918783933, 98.094088345045122423471184447, 34.677952239613162532805290539, -0.435441341531714487533832880, 129.220619858914346878009382635, 0.911925860653483022488785537, 3.743571313305298797757814100, 3.153364454826400375964112754, 0.007065131195186014588516255, -0.081683675915617898199982960, -0.954530616937390941068031225, 1.612455139641955748075474730, 0.570015487183247460123425299, 1.093367709554965427898309827, 1.511144844202827464130223234, 1.007928243238619847588211087, -0.740554584228065859718981301, 0.104364933113540087061821282, 8.660904648990943144326593028, 12.172353417045528090056905057, 6.888583310333941334135943180, 30.511480066561279755887881038, 1.585887060974324525020051624};
     srs_ai->status()->max_combo = 0;
@@ -142,17 +179,17 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
     srs_ai->ai_config()->table = table.table;
     srs_ai->ai_config()->table_max = table.table_max;
 
-    srs_ai->memory_limit(32ull << 20);
-
     bot.elapsed_time = (clock() - bot.start_time) / CLOCKS_PER_SEC * 1000;
-    if (!srs_ai->status()->is_margin)
+    if (!srs_ai->ai_config()->is_margin)
     {
         if (bot.elapsed_time > GARBAGE_MARGIN_TIME)
         {
-            srs_ai->status()->is_margin = true;
-            srs_ai->status()->start_count = clock();
+            srs_ai->ai_config()->is_margin = true;
+            srs_ai->ai_config()->start_count = clock();
         }
     }
+
+    srs_ai->memory_limit(32ull << 20);
     srs_ai->status()->death = 0;
     srs_ai->status()->combo = combo;
     if (srs_ai->status()->under_attack != upcomeAtt)
@@ -237,7 +274,7 @@ extern "C" EXPORT void end_bot(int bot_id)
     srs_ai_lock.unlock();
 }
 
-extern "C" EXPORT void new_game(int bot_id)
+extern "C" EXPORT void new_game(int bot_id, const char* config)
 {
     srs_ai_lock.lock();
     auto it = std::find_if(bots.begin(), bots.end(), [&](const BotInstance &bot)
@@ -248,7 +285,7 @@ extern "C" EXPORT void new_game(int bot_id)
         return;
     }
     srs_ai_lock.unlock();
-    it->new_game();
+    it->new_game(config);
 }
 
 extern "C" EXPORT const char* TetrisAI(int bot_id, const char *param)

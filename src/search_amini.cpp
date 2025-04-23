@@ -464,6 +464,7 @@ namespace search_amini
         bool allow_180 = config_->allow_180;
         bool is_20g = config_->is_20g;
         bool allow_LR = config_->allow_LR;
+        bool allow_d = config_->allow_D;
         if (is_20g)
         {
             node = node->drop(map);
@@ -473,7 +474,7 @@ namespace search_amini
         node_mark_.clear();
         node_mark_filtered_.clear();
         node_search_.clear();
-        if (node->status.t == 'T')
+        if (node->status.t == 'T' && config_->is_tspin)
         {
             return search_t(map, node, depth);
         }
@@ -527,9 +528,12 @@ namespace search_amini
                         if (node_mark_filtered_.mark(node))
                         {
                             TetrisNodeWithASpinType node_ex(node);
-                            if (check_immobile(node, snap))
+                            if (config_->is_amini || config_->is_aspin)
                             {
-                                node_ex.type = ASpinMini;
+                                if (check_immobile(node, snap))
+                                {
+                                    node_ex.type = config_->is_amini ? ASpinMini : AllSpin;
+                                }
                             }
                             land_point_cache_.push_back(node_ex);
                         }
@@ -545,9 +549,20 @@ namespace search_amini
                         node_search_.push_back(node->move_right);
                     }
                     // d
-                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                    if (allow_d)
                     {
-                        node_search_.push_back(node->move_down);
+                        if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                        {
+                            node_search_.push_back(node->move_down);
+                        }
+                    }
+                    else
+                    {
+                        const TetrisNode *node_down = node->drop(map);
+                        if (node_mark_.mark(node_down))
+                        {
+                            node_search_.push_back(node_down);
+                        }
                     }
                     if (allow_180)
                     {
@@ -644,9 +659,20 @@ namespace search_amini
                         node_search_.push_back(node->move_right);
                     }
                     // d
-                    if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                    if (allow_d)
                     {
-                        node_search_.push_back(node->move_down);
+                        if (node->move_down && node_mark_.mark(node->move_down) && node->move_down->check(map, node))
+                        {
+                            node_search_.push_back(node->move_down);
+                        }
+                    }
+                    else
+                    {
+                        const TetrisNode *node_down = node->drop(map);
+                        if (node_mark_.mark(node_down))
+                        {
+                            node_search_.push_back(node_down);
+                        }
                     }
                     if (allow_180)
                     {
@@ -985,6 +1011,7 @@ namespace search_amini
         TetrisMapSnap snap;
         node->build_snap(map, context_, snap);
         bool allow_180 = config_->allow_180;
+        bool allow_d = config_->allow_d;
         bool is_20g = config_->is_20g;
         if (is_20g)
         {
@@ -1011,9 +1038,20 @@ namespace search_amini
                     }
                 }
                 // d
-                if (node->move_down && node_mark_.set(node->move_down, node, ' ') && node->move_down->check(snap))
+                if (allow_d)
                 {
-                    node_search_.push_back(node->move_down);
+                    if (node->move_down && node_mark_.set(node->move_down, node, ' ') && node->move_down->check(snap))
+                    {
+                        node_search_.push_back(node->move_down);
+                    }
+                }
+                else
+                {
+                    const TetrisNode *node_down = node->drop(map);
+                    if (node_mark_.set(node_down, node, ' '))
+                    {
+                        node_search_.push_back(node_down);
+                    }
                 }
                 // l
                 if (node->move_left && node_mark_.set(node->move_left, node, ' ') && node->move_left->check(snap))
@@ -1096,9 +1134,12 @@ namespace search_amini
             node_ex.is_last_rotate = last.second != ' ' || (node_ex.last == nullptr && depth == 0 && config_->last_rotate);
             node_ex.is_ready = check_ready(map, node);
             node_ex.is_mini_ready = check_mini_ready(node_ex, map);
-            if (check_immobile(node_ex, snap))
+            if (config_->allow_immobile_t && (config_->is_amini || config_->is_aspin))
             {
-                node_ex.type = ASpinMini;
+                if (check_immobile(node_ex, snap))
+                {
+                    node_ex.type = config_->is_amini ? ASpinMini : AllSpin;
+                }
             }
             land_point_cache_.push_back(node_ex);
         }

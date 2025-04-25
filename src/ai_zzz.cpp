@@ -1861,7 +1861,7 @@ namespace ai_zzz
     {
         if (eval_result.clear > 0 && node.is_check && node.is_last_rotate)
         {
-            if (eval_result.clear == 1 && node.is_mini_ready)
+            if (node.is_mini_ready)
             {
                 node.type = ASpinType::TSpinMini;
             }
@@ -2064,7 +2064,7 @@ namespace ai_zzz
             + (((result.attack * 256 * rate) * p.attack) 
             + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot 
             + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8)  / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot) 
-            + (p.b2b * ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 8 : 0) * (result.combo + 1)) * (safe >= 10 ? 32 * result.b2bcnt : safe))
+            + (p.b2b * ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 64 : 1) * (eval_result.map->roof <= 10 ? 16 * result.b2bcnt : 22 - eval_result.map->roof) * (result.combo + 1)))
             + result.like * 32) 
             - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))) 
             * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_)) 

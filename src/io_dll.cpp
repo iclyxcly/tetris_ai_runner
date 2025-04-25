@@ -11,18 +11,18 @@
 #include <string>
 
 using JSON = nlohmann::json;
-typedef m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_amini::Search> Bot;
+using Bot = m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_amini::Search>;
 struct BotInstance
 {
-    uint64_t bot_id;
     std::unique_ptr<Bot> bot;
+    std::string buffer;
     clock_t margin_start_time = 0, elapsed_time = 0, start_time = 0;
-    BotInstance(const unsigned long long &id) : bot_id(id)
+    BotInstance()
     {
         bot = std::make_unique<Bot>();
         bot->prepare(10, 40);
     }
-    void new_game(const char* raw_cfg)
+    void new_game(const char *raw_cfg)
     {
         JSON cfg = JSON::parse(raw_cfg);
         start_time = clock();
@@ -79,9 +79,8 @@ struct BotInstance
     }
 };
 
-std::recursive_mutex srs_ai_lock;
-std::recursive_mutex async_lock;
-std::vector<BotInstance> bots;
+std::mutex srs_ai_lock;
+std::unordered_map<uint64_t, BotInstance*> bots;
 
 void print_board(const m_tetris::TetrisMap &map)
 {
@@ -115,22 +114,12 @@ void print_board(const m_tetris::TetrisMap &map)
     }
 }
 
-std::string ai_run_thread(const int &bot_id, const JSON &data)
+std::string run_ai(BotInstance &bot, const JSON &data)
 {
     std::string result;
-    srs_ai_lock.lock();
-    auto it = std::find_if(bots.begin(), bots.end(), [&](const BotInstance &bot)
-                           { return bot.bot_id == bot_id; });
-    if (it == bots.end())
-    {
-        srs_ai_lock.unlock();
-        return "";
-    }
-    srs_ai_lock.unlock();
-    BotInstance &bot = *it;
 
     auto &srs_ai = bot.bot;
-    
+
     bool can_hold = data["can_hold"].get<bool>();
     bool can_pc = data["can_pc"].get<bool>();
     char active = data["active"].get<std::string>()[0];
@@ -174,7 +163,9 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
     {
         int table[24] = {0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3};
         int table_max = 18;
-    } table;
+    };
+
+    static const ComboTable table;
 
     srs_ai->ai_config()->table = table.table;
     srs_ai->ai_config()->table_max = table.table_max;
@@ -189,7 +180,7 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
         }
     }
 
-    srs_ai->memory_limit(32ull << 20);
+    srs_ai->memory_limit(512ull << 20);
     srs_ai->status()->death = 0;
     srs_ai->status()->combo = combo;
     if (srs_ai->status()->under_attack != upcomeAtt)
@@ -253,45 +244,58 @@ std::string ai_run_thread(const int &bot_id, const JSON &data)
 #define EXPORT __attribute__((visibility("default")))
 #endif
 
-thread_local std::unordered_map<int, std::string> buffer_map;
-
 extern "C" EXPORT void new_bot(int bot_id)
 {
-    srs_ai_lock.lock();
-    bots.emplace_back(BotInstance(bot_id));
-    srs_ai_lock.unlock();
+    std::lock_guard<std::mutex> lock(srs_ai_lock);
+    if (bots.find(bot_id) != bots.end())
+    {
+        throw std::runtime_error("Bot exists [new_bot]");
+    }
+    bots[bot_id] = new BotInstance();
 }
 
 extern "C" EXPORT void end_bot(int bot_id)
 {
-    srs_ai_lock.lock();
-    auto it = std::remove_if(bots.begin(), bots.end(), [&](const BotInstance &bot)
-                             { return bot.bot_id == bot_id; });
+    std::lock_guard<std::mutex> lock(srs_ai_lock);
+    auto it = bots.find(bot_id);
     if (it != bots.end())
     {
-        bots.erase(it, bots.end());
+        delete it->second;
+        bots.erase(it);
     }
-    srs_ai_lock.unlock();
-}
-
-extern "C" EXPORT void new_game(int bot_id, const char* config)
-{
-    srs_ai_lock.lock();
-    auto it = std::find_if(bots.begin(), bots.end(), [&](const BotInstance &bot)
-                           { return bot.bot_id == bot_id; });
-    if (it == bots.end())
+    else
     {
-        srs_ai_lock.unlock();
-        return;
+        throw std::runtime_error("Bot not found [end_bot]");
     }
-    srs_ai_lock.unlock();
-    it->new_game(config);
 }
 
-extern "C" EXPORT const char* TetrisAI(int bot_id, const char *param)
+extern "C" EXPORT void new_game(int bot_id, const char *config)
+{
+    std::lock_guard<std::mutex> lock(srs_ai_lock);
+    auto it = bots.find(bot_id);
+    if (it != bots.end())
+    {
+        it->second->new_game(config);
+    }
+    else
+    {
+        throw std::runtime_error("Bot not found [new_game]");
+    }
+}
+
+extern "C" EXPORT const char *TetrisAI(int bot_id, const char *param)
 {
     JSON data = JSON::parse(param);
-    buffer_map[bot_id] = ai_run_thread(bot_id, data);
-    // printf("Move: %s\n", buffer_map[bot_id].c_str());
-    return buffer_map[bot_id].c_str();
+    BotInstance *bot;
+    {
+        std::lock_guard<std::mutex> lock(srs_ai_lock);
+        auto it = bots.find(bot_id);
+        if (it == bots.end())
+            throw std::runtime_error("Bot not found [TetrisAI]");
+        bot = it->second;
+    }
+
+    bot->buffer = run_ai(*bot, data);
+    
+    return bot->buffer.c_str();
 }

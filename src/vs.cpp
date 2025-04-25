@@ -112,7 +112,7 @@ struct tetris_game
     {
         fill_next();
         m_tetris::TetrisNode const *node = tetris_ai.context()->generate(next.front());
-        if(map.row[tetris_ai.context()->height() - 1] != 0 || !node->check(map, node))
+        if(map.row[tetris_ai.context()->height() - 1] != 0 || !node->check(map))
         {
             return -1;
         }
@@ -128,31 +128,31 @@ struct tetris_game
             switch(*move++)
             {
             case 'l':
-                if(node->move_left && (node->row >= map.roof || node->move_left->check(map, node)))
+                if(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'r':
-                if(node->move_right && (node->row >= map.roof || node->move_right->check(map, node)))
+                if(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                 {
                     node = node->move_right;
                 }
                 break;
             case 'd':
-                if(node->move_down && (node->row > map.roof || node->move_down->check(map, node)))
+                if(node->move_down && (node->row > map.roof || node->move_down->check(map)))
                 {
                     node = node->move_down;
                 }
                 break;
             case 'L':
-                while(node->move_left && (node->row >= map.roof || node->move_left->check(map, node)))
+                while(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                 {
                     node = node->move_left;
                 }
                 break;
             case 'R':
-                while(node->move_right && (node->row >= map.roof || node->move_right->check(map, node)))
+                while(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                 {
                     node = node->move_right;
                 }
@@ -161,19 +161,19 @@ struct tetris_game
                 node = node->drop(map);
                 break;
             case 'z':
-                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map, node))
+                if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
                 {
                     node = node->rotate_counterclockwise;
                 }
                 break;
             case 'c':
-                if(node->rotate_clockwise && node->rotate_clockwise->check(map, node))
+                if(node->rotate_clockwise && node->rotate_clockwise->check(map))
                 {
                     node = node->rotate_clockwise;
                 }
                 break;
             case 'x':
-                if(node->rotate_opposite && node->rotate_opposite->check(map, node))
+                if(node->rotate_opposite && node->rotate_opposite->check(map))
                 {
                     node = node->rotate_opposite;
                 }
@@ -223,7 +223,7 @@ struct tetris_game
 
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[]);
 
-//ÕâÊÇÒ»¸ö¼ÓÔØdll²âÊÔÊý¾ÝµÄ¿ØÖÆÌ¨,ÓÅÏÈµ÷ÓÃAIPath,ÕÒ²»µ½Ôòµ÷ÓÃAI
+//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½dllï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ¿ï¿½ï¿½ï¿½Ì¨,ï¿½ï¿½ï¿½Èµï¿½ï¿½ï¿½AIPath,ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½AI
 int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     ege::mtsrand(unsigned int(time(nullptr)));
@@ -242,11 +242,11 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
     unsigned long long attack[2];
 
     char out[81920] = "";
-    char box_0[3] = "¡õ";
-    char box_1[3] = "¡ö";
+    char box_0[3] = "ï¿½ï¿½";
+    char box_1[3] = "ï¿½ï¿½";
 
-    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // ¹â±êÐÅÏ¢
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // ÉèÖÃ¹â±êÒþ²Ø
+    CONSOLE_CURSOR_INFO cursorInfo = {1, FALSE};  // ï¿½ï¿½ï¿½ï¿½ï¿½Ï¢
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);  // ï¿½ï¿½ï¿½Ã¹ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
     
     while(true)
     {
@@ -284,7 +284,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 #pragma warning(push)
 #pragma warning(disable:4996)
             wchar_t BUFFER[1024];
-            std::swprintf(BUFFER, L"[%s][±È·Ö%d:%d][Ð§ÂÊ%f:%f]", (attack_0 == -1 ? attack_1 == -1 ? TEXT("Æ½¾Ö") : argv[2] : argv[1]), win[0], win[1], attack[0] / total, attack[1] / total);
+            std::swprintf(BUFFER, L"[%s][ï¿½È·ï¿½%d:%d][Ð§ï¿½ï¿½%f:%f]", (attack_0 == -1 ? attack_1 == -1 ? TEXT("Æ½ï¿½ï¿½") : argv[2] : argv[1]), win[0], win[1], attack[0] / total, attack[1] / total);
             SetWindowText(GetConsoleWindow(), BUFFER);
 #pragma warning(pop)
             new_seed = ege::mtirand();
@@ -311,7 +311,7 @@ int wmain(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 
 m_tetris::TetrisEngine<rule_st::TetrisRule, ai_zzz::Dig, search_simple::Search> tetris_ai;
 
-//ÕâÊÇÒ»¸ö¼ÓÔØdll²âÊÔÊý¾ÝµÄ¿ØÖÆÌ¨,ÓÅÏÈµ÷ÓÃAIPath,ÕÒ²»µ½Ôòµ÷ÓÃAI
+//ï¿½ï¿½ï¿½ï¿½Ò»ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½dllï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ÝµÄ¿ï¿½ï¿½ï¿½Ì¨,ï¿½ï¿½ï¿½Èµï¿½ï¿½ï¿½AIPath,ï¿½Ò²ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½AI
 int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
 {
     attach_init();
@@ -400,7 +400,7 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             log_rows = 0;
             log_piece = 0;
         }
-        if(!node->check(map, node))
+        if(!node->check(map))
         {
             total_lines += this_lines;
             if(this_lines > max_line)
@@ -436,31 +436,31 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                 switch(*move++)
                 {
                 case 'l':
-                    if(node->move_left && (node->row >= map.roof || node->move_left->check(map, node)))
+                    if(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                     {
                         node = node->move_left;
                     }
                     break;
                 case 'r':
-                    if(node->move_right && (node->row >= map.roof || node->move_right->check(map, node)))
+                    if(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                     {
                         node = node->move_right;
                     }
                     break;
                 case 'd':
-                    if(node->move_down && (node->row > map.roof || node->move_down->check(map, node)))
+                    if(node->move_down && (node->row > map.roof || node->move_down->check(map)))
                     {
                         node = node->move_down;
                     }
                     break;
                 case 'L':
-                    while(node->move_left && (node->row >= map.roof || node->move_left->check(map, node)))
+                    while(node->move_left && (node->row >= map.roof || node->move_left->check(map)))
                     {
                         node = node->move_left;
                     }
                     break;
                 case 'R':
-                    while(node->move_right && (node->row >= map.roof || node->move_right->check(map, node)))
+                    while(node->move_right && (node->row >= map.roof || node->move_right->check(map)))
                     {
                         node = node->move_right;
                     }
@@ -469,19 +469,19 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
                     node = node->drop(map);
                     break;
                 case 'z':
-                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map, node))
+                    if(node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
                     {
                         node = node->rotate_counterclockwise;
                     }
                     break;
                 case 'c':
-                    if(node->rotate_clockwise && node->rotate_clockwise->check(map, node))
+                    if(node->rotate_clockwise && node->rotate_clockwise->check(map))
                     {
                         node = node->rotate_clockwise;
                     }
                     break;
                 case 'x':
-                    if(node->rotate_opposite && node->rotate_opposite->check(map, node))
+                    if(node->rotate_opposite && node->rotate_opposite->check(map))
                     {
                         node = node->rotate_opposite;
                     }
@@ -500,21 +500,21 @@ int speed_test(unsigned int argc, wchar_t *argv[], wchar_t *eve[])
             --best_x;
             --best_r;
             int r = node->status.r;
-            while(best_r > r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map, node))
+            while(best_r > r && node->rotate_counterclockwise && node->rotate_counterclockwise->check(map))
             {
                 ++r;
                 node = node->rotate_counterclockwise;
             }
-            while(best_r < r && node->rotate_clockwise && node->rotate_clockwise->check(map, node))
+            while(best_r < r && node->rotate_clockwise && node->rotate_clockwise->check(map))
             {
                 --r;
                 node = node->rotate_clockwise;
             }
-            while(best_x > node->status.x && node->move_right && (node->row >= map.roof || node->move_right->check(map, node)))
+            while(best_x > node->status.x && node->move_right && (node->row >= map.roof || node->move_right->check(map)))
             {
                 node = node->move_right;
             }
-            while(best_x < node->status.x && node->move_left && (node->row >= map.roof || node->move_left->check(map, node)))
+            while(best_x < node->status.x && node->move_left && (node->row >= map.roof || node->move_left->check(map)))
             {
                 node = node->move_left;
             }

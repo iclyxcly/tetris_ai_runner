@@ -1,4 +1,8 @@
 #include <iostream>
+#include <sys/socket.h>
+#include <sys/un.h>
+#include <unistd.h>
+#include <functional>
 #include "tetris_core.h"
 #include "search_amini.h"
 #include "ai_zzz.h"
@@ -9,6 +13,7 @@
 #include <nlohmann/json.hpp>
 #include <mutex>
 #include <string>
+#include <atomic>
 
 using JSON = nlohmann::json;
 using Bot = m_tetris::TetrisEngine<rule_io::TetrisRule, ai_zzz::IO, search_amini::Search>;
@@ -22,9 +27,8 @@ struct BotInstance
         bot = std::make_unique<Bot>();
         bot->prepare(10, 40);
     }
-    void new_game(const char *raw_cfg)
+    void new_game(const JSON &cfg)
     {
-        JSON cfg = JSON::parse(raw_cfg);
         start_time = clock();
         margin_start_time = 0;
         elapsed_time = 0;
@@ -79,8 +83,171 @@ struct BotInstance
     }
 };
 
+struct Message
+{
+    int bot_id;
+    std::string command;
+    JSON data;
+    bool success = false;
+
+    static Message parse(const std::string &src)
+    {
+        Message msg;
+        std::cout << "Received: " + src << std::endl;
+        const JSON data = JSON::parse(src);
+        try
+        {
+            if (data.contains("bot_id") && data["bot_id"].is_number())
+            {
+                msg.bot_id = data["bot_id"];
+            }
+            else
+            {
+                throw std::invalid_argument("Missing or invalid 'bot_id'");
+            }
+
+            if (data.contains("command") && data["command"].is_string())
+            {
+                msg.command = data["command"];
+            }
+            else
+            {
+                throw std::invalid_argument("Missing or invalid 'command'");
+            }
+
+            if (data.contains("data") && data["data"].is_object())
+            {
+                msg.data = data["data"];
+            }
+            msg.success = true;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        }
+        return msg;
+    }
+
+    static JSON pack(const Message &src)
+    {
+        JSON json;
+        try
+        {
+            json["bot_id"] = src.bot_id;
+            json["command"] = src.command;
+            json["data"] = src.data;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error packing Message to JSON: " << e.what() << std::endl;
+            throw;
+        }
+        return json;
+    }
+
+    Message(const int &bot_id, const std::string &command, const JSON &data) : bot_id(bot_id), command(command), data(data) {}
+    Message() {}
+};
+
+class UdsServer
+{
+public:
+    using message_handler = std::function<std::string(const std::string &)>;
+
+    explicit UdsServer(const char *socket_path = "/tmp/tetris_ai")
+        : path_(socket_path), running_(false), server_fd_(-1)
+    {
+        ::unlink(path_);
+    }
+
+    ~UdsServer()
+    {
+        stop();
+        ::unlink(path_);
+    }
+
+    void set_handler(message_handler handler)
+    {
+        handler_ = std::move(handler);
+    }
+
+    bool start(int backlog = 5)
+    {
+        std::cout << "Listening..." << std::endl;
+        server_fd_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        if (server_fd_ < 0)
+            return false;
+
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        std::strncpy(addr.sun_path, path_, sizeof(addr.sun_path) - 1);
+
+        if (::bind(server_fd_, (sockaddr *)&addr, sizeof(addr)) < 0)
+            return false;
+        if (::listen(server_fd_, backlog) < 0)
+            return false;
+
+        running_.store(true);
+        while (running_.load())
+        {
+            int client_fd = ::accept(server_fd_, nullptr, nullptr);
+            if (client_fd < 0)
+                continue;
+            std::thread(&UdsServer::handle_client, this, client_fd).detach();
+        }
+        return true;
+    }
+
+    void stop()
+    {
+        running_.store(false);
+        if (server_fd_ >= 0)
+        {
+            ::shutdown(server_fd_, SHUT_RDWR);
+            ::close(server_fd_);
+            server_fd_ = -1;
+        }
+    }
+
+private:
+    void handle_client(int fd)
+    {
+        constexpr size_t buf_size = 4096;
+        std::vector<char> buf(buf_size);
+
+        while (true)
+        {
+            ssize_t n = ::read(fd, buf.data(), buf_size);
+            if (n <= 0)
+                break;
+
+            if (handler_)
+            {
+                std::string request(buf.data(), n);
+                std::string reply = handler_(request);
+                if (!reply.empty())
+                {
+                    std::cout << "Sending: " + reply << std::endl;
+                    reply.push_back('\n');
+                    ssize_t w = ::write(fd, reply.c_str(), reply.size());
+                    if (w < 0)
+                    {
+                        perror("write failed");
+                    }
+                }
+            }
+        }
+        ::close(fd);
+    }
+
+    const char *path_;
+    message_handler handler_;
+    std::atomic<bool> running_;
+    int server_fd_;
+};
+
 std::mutex srs_ai_lock;
-std::unordered_map<uint64_t, BotInstance*> bots;
+std::unordered_map<uint64_t, BotInstance *> bots;
 
 void print_board(const m_tetris::TetrisMap &map)
 {
@@ -239,13 +406,7 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     return result;
 }
 
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT __attribute__((visibility("default")))
-#endif
-
-extern "C" EXPORT void new_bot(int bot_id)
+void new_bot(int bot_id)
 {
     std::lock_guard<std::mutex> lock(srs_ai_lock);
     if (bots.find(bot_id) != bots.end())
@@ -255,7 +416,7 @@ extern "C" EXPORT void new_bot(int bot_id)
     bots[bot_id] = new BotInstance();
 }
 
-extern "C" EXPORT void end_bot(int bot_id)
+void end_bot(int bot_id)
 {
     std::lock_guard<std::mutex> lock(srs_ai_lock);
     auto it = bots.find(bot_id);
@@ -266,19 +427,18 @@ extern "C" EXPORT void end_bot(int bot_id)
     }
 }
 
-extern "C" EXPORT void new_game(int bot_id, const char *config)
+void new_game(int bot_id, const JSON &data)
 {
     std::lock_guard<std::mutex> lock(srs_ai_lock);
     auto it = bots.find(bot_id);
     if (it != bots.end())
     {
-        it->second->new_game(config);
+        it->second->new_game(data);
     }
 }
 
-extern "C" EXPORT const char *TetrisAI(int bot_id, const char *param)
+std::string TetrisAI(int bot_id, const JSON &data)
 {
-    JSON data = JSON::parse(param);
     BotInstance *bot;
     {
         std::lock_guard<std::mutex> lock(srs_ai_lock);
@@ -289,6 +449,40 @@ extern "C" EXPORT const char *TetrisAI(int bot_id, const char *param)
     }
 
     bot->buffer = run_ai(*bot, data);
-    
-    return bot->buffer.c_str();
+
+    return bot->buffer;
+}
+
+int main()
+{
+    std::string path = std::getenv("HOME");
+    path += "/tetris_ai";
+    UdsServer server(path.c_str());
+    server.set_handler(
+        [&](const std::string &msg)
+        {
+            Message content = Message::parse(msg);
+
+            if (content.command == "create")
+            {
+                new_bot(content.bot_id);
+            }
+            else if (content.command == "prepare")
+            {
+                new_game(content.bot_id, content.data);
+            }
+            else if (content.command == "dismiss")
+            {
+                end_bot(content.bot_id);
+            }
+            else if (content.command == "move")
+            {
+                std::string res = TetrisAI(content.bot_id, content.data);
+                return Message::pack({content.bot_id, content.command, res}).dump();
+            }
+            return std::string("");
+        });
+    server.start();
+    std::cin.get();
+    return 0;
 }

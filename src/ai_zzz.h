@@ -277,6 +277,7 @@ namespace ai_zzz
         {
             int const *table;
             int table_max;
+            int next_size;
             bool is_margin;
             bool season_2;
             clock_t start_count;

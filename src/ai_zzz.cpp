@@ -2051,7 +2051,7 @@ namespace ai_zzz
             break;
         }
         safe += eval_result.clear - result.map_rise;
-        if (safe <= 0 || node->row + result.map_rise >= 21)
+        if (safe <= 0 || node->row + result.map_rise >= 20)
             result.death = 1;
         result.like += result.attack;
         int ua = result.under_attack;
@@ -2059,12 +2059,14 @@ namespace ai_zzz
         result.under_attack = std::max(0, result.under_attack - result.attack);
         result.attack = std::max(0, result.attack - ua);
         double rate = (1. / (depth + 1)) + 3;
+        double mul = ((0. + config_->next_size) / 10.0) / (config_->next_size - env.length);
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
             + (((result.attack * 256 * rate) * p.attack) 
             + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot 
             + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8)  / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot) 
-            + (p.b2b * ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 64 : 1) * (eval_result.map->roof <= 10 ? 16 * result.b2bcnt : 22 - eval_result.map->roof) * (result.combo + 1)))
+            + ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 64 : 1) * (result.combo + 1) * mul
+            + p.b2b * (eval_result.map->roof <= 10 ? 16 * result.b2bcnt : 22 - eval_result.map->roof))
             + result.like * 32) 
             - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))) 
             * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_)) 
@@ -2076,11 +2078,11 @@ namespace ai_zzz
 
     size_t IO::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
     {
-        if (up >= 21)
+        if (up >= 20)
         {
             return 1;
         }
-        size_t height = 22 - up;
+        size_t height = 21 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 

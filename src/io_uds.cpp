@@ -215,25 +215,24 @@ private:
         constexpr size_t buf_size = 4096;
         std::vector<char> buf(buf_size);
 
+        std::string leftover;
         while (true)
         {
             ssize_t n = ::read(fd, buf.data(), buf_size);
             if (n <= 0)
                 break;
 
-            if (handler_)
+            leftover.append(buf.data(), n);
+            size_t pos;
+            while ((pos = leftover.find('\n')) != std::string::npos)
             {
-                std::string request(buf.data(), n);
-                std::string reply = handler_(request);
+                std::string line = leftover.substr(0, pos);
+                leftover.erase(0, pos + 1);
+                std::string reply = handler_(line);
                 if (!reply.empty())
                 {
-                    std::cout << "Sending: " + reply << std::endl;
                     reply.push_back('\n');
-                    ssize_t w = ::write(fd, reply.c_str(), reply.size());
-                    if (w < 0)
-                    {
-                        perror("write failed");
-                    }
+                    ::write(fd, reply.c_str(), reply.size());
                 }
             }
         }

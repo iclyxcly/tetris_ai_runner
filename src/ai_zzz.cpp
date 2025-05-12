@@ -2059,7 +2059,7 @@ namespace ai_zzz
         result.under_attack = std::max(0, result.under_attack - result.attack);
         result.attack = std::max(0, result.attack - ua);
         double rate = (1. / (depth + 1)) + 3;
-        double mul = ((0. + config_->next_size) / 10.0) / (config_->next_size - env.length);
+        double mul = std::max(0.0, ((0. + config_->next_size) / 10.0) / (config_->next_size - env.length));
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
             + (((result.attack * 256 * rate) * p.attack) 

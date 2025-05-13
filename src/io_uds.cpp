@@ -83,168 +83,6 @@ struct BotInstance
     }
 };
 
-struct Message
-{
-    int bot_id;
-    std::string command;
-    JSON data;
-    bool success = false;
-
-    static Message parse(const std::string &src)
-    {
-        Message msg;
-        std::cout << "Received: " + src << std::endl;
-        const JSON data = JSON::parse(src);
-        try
-        {
-            if (data.contains("bot_id") && data["bot_id"].is_number())
-            {
-                msg.bot_id = data["bot_id"];
-            }
-            else
-            {
-                throw std::invalid_argument("Missing or invalid 'bot_id'");
-            }
-
-            if (data.contains("command") && data["command"].is_string())
-            {
-                msg.command = data["command"];
-            }
-            else
-            {
-                throw std::invalid_argument("Missing or invalid 'command'");
-            }
-
-            if (data.contains("data") && data["data"].is_object())
-            {
-                msg.data = data["data"];
-            }
-            msg.success = true;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
-        }
-        return msg;
-    }
-
-    static JSON pack(const Message &src)
-    {
-        JSON json;
-        try
-        {
-            json["bot_id"] = src.bot_id;
-            json["command"] = src.command;
-            json["data"] = src.data;
-        }
-        catch (const std::exception &e)
-        {
-            std::cerr << "Error packing Message to JSON: " << e.what() << std::endl;
-            throw;
-        }
-        return json;
-    }
-
-    Message(const int &bot_id, const std::string &command, const JSON &data) : bot_id(bot_id), command(command), data(data) {}
-    Message() {}
-};
-
-class UdsServer
-{
-public:
-    using message_handler = std::function<std::string(const std::string &)>;
-
-    explicit UdsServer(const char *socket_path = "/tmp/tetris_ai")
-        : path_(socket_path), running_(false), server_fd_(-1)
-    {
-        ::unlink(path_);
-    }
-
-    ~UdsServer()
-    {
-        stop();
-        ::unlink(path_);
-    }
-
-    void set_handler(message_handler handler)
-    {
-        handler_ = std::move(handler);
-    }
-
-    bool start(int backlog = 5)
-    {
-        std::cout << "Listening..." << std::endl;
-        server_fd_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
-        if (server_fd_ < 0)
-            return false;
-
-        sockaddr_un addr{};
-        addr.sun_family = AF_UNIX;
-        std::strncpy(addr.sun_path, path_, sizeof(addr.sun_path) - 1);
-
-        if (::bind(server_fd_, (sockaddr *)&addr, sizeof(addr)) < 0)
-            return false;
-        if (::listen(server_fd_, backlog) < 0)
-            return false;
-
-        running_.store(true);
-        while (running_.load())
-        {
-            int client_fd = ::accept(server_fd_, nullptr, nullptr);
-            if (client_fd < 0)
-                continue;
-            std::thread(&UdsServer::handle_client, this, client_fd).detach();
-        }
-        return true;
-    }
-
-    void stop()
-    {
-        running_.store(false);
-        if (server_fd_ >= 0)
-        {
-            ::shutdown(server_fd_, SHUT_RDWR);
-            ::close(server_fd_);
-            server_fd_ = -1;
-        }
-    }
-
-private:
-    void handle_client(int fd)
-    {
-        constexpr size_t buf_size = 4096;
-        std::vector<char> buf(buf_size);
-
-        std::string leftover;
-        while (true)
-        {
-            ssize_t n = ::read(fd, buf.data(), buf_size);
-            if (n <= 0)
-                break;
-
-            leftover.append(buf.data(), n);
-            size_t pos;
-            while ((pos = leftover.find('\n')) != std::string::npos)
-            {
-                std::string line = leftover.substr(0, pos);
-                leftover.erase(0, pos + 1);
-                std::string reply = handler_(line);
-                if (!reply.empty())
-                {
-                    reply.push_back('\n');
-                    ::write(fd, reply.c_str(), reply.size());
-                }
-            }
-        }
-        ::close(fd);
-    }
-
-    const char *path_;
-    message_handler handler_;
-    std::atomic<bool> running_;
-    int server_fd_;
-};
-
 std::mutex srs_ai_lock;
 std::unordered_map<uint64_t, BotInstance *> bots;
 
@@ -451,6 +289,177 @@ std::string TetrisAI(int bot_id, const JSON &data)
 
     return bot->buffer;
 }
+
+struct Message
+{
+    int bot_id;
+    std::string command;
+    JSON data;
+    bool success = false;
+
+    static Message parse(const std::string &src)
+    {
+        Message msg;
+        std::cout << "Received: " + src << std::endl;
+        const JSON data = JSON::parse(src);
+        try
+        {
+            if (data.contains("bot_id") && data["bot_id"].is_number())
+            {
+                msg.bot_id = data["bot_id"];
+            }
+            else
+            {
+                throw std::invalid_argument("Missing or invalid 'bot_id'");
+            }
+
+            if (data.contains("command") && data["command"].is_string())
+            {
+                msg.command = data["command"];
+            }
+            else
+            {
+                throw std::invalid_argument("Missing or invalid 'command'");
+            }
+
+            if (data.contains("data") && data["data"].is_object())
+            {
+                msg.data = data["data"];
+            }
+            msg.success = true;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error parsing JSON: " << e.what() << std::endl;
+        }
+        return msg;
+    }
+
+    static JSON pack(const Message &src)
+    {
+        JSON json;
+        try
+        {
+            json["bot_id"] = src.bot_id;
+            json["command"] = src.command;
+            json["data"] = src.data;
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << "Error packing Message to JSON: " << e.what() << std::endl;
+            throw;
+        }
+        return json;
+    }
+
+    Message(const int &bot_id, const std::string &command, const JSON &data) : bot_id(bot_id), command(command), data(data) {}
+    Message() {}
+};
+
+class UdsServer
+{
+public:
+    using message_handler = std::function<std::string(const std::string &)>;
+
+    explicit UdsServer(const char *socket_path = "/tmp/tetris_ai")
+        : path_(socket_path), running_(false), server_fd_(-1)
+    {
+        ::unlink(path_);
+    }
+
+    ~UdsServer()
+    {
+        stop();
+        ::unlink(path_);
+    }
+
+    void set_handler(message_handler handler)
+    {
+        handler_ = std::move(handler);
+    }
+
+    bool start(int backlog = 5)
+    {
+        std::cout << "Listening..." << std::endl;
+        server_fd_ = ::socket(AF_UNIX, SOCK_STREAM, 0);
+        if (server_fd_ < 0)
+            return false;
+
+        sockaddr_un addr{};
+        addr.sun_family = AF_UNIX;
+        std::strncpy(addr.sun_path, path_, sizeof(addr.sun_path) - 1);
+
+        if (::bind(server_fd_, (sockaddr *)&addr, sizeof(addr)) < 0)
+            return false;
+        if (::listen(server_fd_, backlog) < 0)
+            return false;
+
+        running_.store(true);
+        while (running_.load())
+        {
+            int client_fd = ::accept(server_fd_, nullptr, nullptr);
+            if (client_fd < 0)
+                continue;
+            std::thread(&UdsServer::handle_client, this, client_fd).detach();
+        }
+        return true;
+    }
+
+    void stop()
+    {
+        running_.store(false);
+        if (server_fd_ >= 0)
+        {
+            ::shutdown(server_fd_, SHUT_RDWR);
+            ::close(server_fd_);
+            server_fd_ = -1;
+        }
+    }
+
+private:
+    void handle_client(int fd)
+    {
+        constexpr size_t buf_size = 4096;
+        std::vector<char> buf(buf_size);
+
+        std::string leftover;
+        while (true)
+        {
+            ssize_t n = ::read(fd, buf.data(), buf_size);
+            if (n <= 0)
+                break;
+
+            leftover.append(buf.data(), n);
+            size_t pos;
+            while ((pos = leftover.find('\n')) != std::string::npos)
+            {
+                std::string line = leftover.substr(0, pos);
+                leftover.erase(0, pos + 1);
+                std::string reply = handler_(line);
+                if (!reply.empty())
+                {
+                    reply.push_back('\n');
+                    ssize_t w = ::send(fd,
+                                    reply.data(),
+                                    reply.size(),
+                                    MSG_NOSIGNAL);
+                    if (w <= 0 && errno == EPIPE)
+                    {
+                        end_bot(Message::parse(line).bot_id);
+                        close(fd);
+                        return;
+                    }
+                }
+            }
+        }
+        ::close(fd);
+    }
+
+    const char *path_;
+    message_handler handler_;
+    std::atomic<bool> running_;
+    int server_fd_;
+};
 
 int main()
 {

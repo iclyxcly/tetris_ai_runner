@@ -252,7 +252,6 @@ namespace ai_zzz
             double hole_line = 380;
             double well_depth = 100;
             double hole_depth = 40;
-            double safe = 0;
             double b2b = 128;
             double attack = 1;
             double hold_t = 4;
@@ -269,17 +268,16 @@ namespace ai_zzz
             double tspin_1 = 0;
             double tspin_2 = 8;
             double tspin_3 = 12;
-            double decision = 6; // lower=b2b, higher=combo
             double combo = 30;
             double ratio = 1.5;
         };
         struct Config
         {
-            int const *table;
-            int table_max;
-            int next_size;
             bool is_margin;
             bool season_2;
+            bool lockout;
+            int multiplier;
+            int garbage_cap;
             clock_t start_count;
             Param param;
         };
@@ -290,6 +288,7 @@ namespace ai_zzz
             int count;
             int t2_value;
             int t3_value;
+            bool lockout;
             m_tetris::TetrisMap const *map;
         };
         struct Status

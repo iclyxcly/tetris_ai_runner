@@ -84,7 +84,7 @@ namespace search_amini
         std::vector<char> make_path_20g(m_tetris::TetrisNode const *node, TetrisNodeWithASpinType const &land_point, m_tetris::TetrisMap const &map);
         std::vector<TetrisNodeWithASpinType> const *search_t(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node, size_t depth);
         bool check_ready(m_tetris::TetrisMap const &map, m_tetris::TetrisNode const *node);
-        bool check_mini_ready(TetrisNodeWithASpinType const &node, m_tetris::TetrisMap const &map);
+        bool check_mini_ready(TetrisNodeWithASpinType const& node, m_tetris::TetrisMap const& map);
         bool check_immobile(TetrisNodeWithASpinType const &node, m_tetris::TetrisMapSnap const &snap);
         std::vector<TetrisNodeWithASpinType> land_point_cache_;
         std::vector<m_tetris::TetrisNode const *> node_incomplete_;

@@ -993,7 +993,7 @@ namespace search_amini
             node_ex.is_last_rotate = last.second != ' ' || (node_ex.last == nullptr && depth == 0 && config_->last_rotate);
             node_ex.is_ready = check_ready(map, node);
             node_ex.is_mini_ready = check_mini_ready(node_ex, map);
-            if (config_->allow_immobile_t && (config_->is_amini || config_->is_aspin))
+            if (!node_ex.is_ready && config_->allow_immobile_t && (config_->is_amini || config_->is_aspin))
             {
                 if (check_immobile(node_ex, snap))
                 {
@@ -1001,6 +1001,12 @@ namespace search_amini
                 }
             }
             land_point_cache_.push_back(node_ex);
+            if (node_ex.is_ready && !check_immobile(node_ex, snap)) {
+                node_ex.is_ready = false;
+                node_ex.is_mini_ready = false;
+                node_ex.is_last_rotate = false;
+                land_point_cache_.push_back(node_ex);
+            }
         }
         return &land_point_cache_;
     }

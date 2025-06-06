@@ -1,4 +1,4 @@
-#define USE_THREAD 1
+#define USE_THREAD 0
 #define USE_PC 0
 #define GARBAGE_MARGIN_TIME 180000
 #define GARBAGE_INCREASE 0.008

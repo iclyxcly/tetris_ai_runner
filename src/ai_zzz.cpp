@@ -1854,6 +1854,7 @@ namespace ai_zzz
                 }
             }
         }
+        result.lockout = node->row >= 20;
         return result;
     }
 
@@ -1877,11 +1878,14 @@ namespace ai_zzz
                                                          : eval_result.map->roof;
         int curAtk = 0;
         int baseAtk = 0;
+
+        bool is_b2b_move = eval_result.clear == 4 || (eval_result.clear && node.type != ASpinType::None) || (config_->season_2 && eval_result.count == 0 && result.map_rise == 0);
+
         auto get_attack = [&](const int &base_atk, int &combo, int &b2b)
         {
             ++combo;
             double atk = base_atk;
-            bool is_b2b_move = eval_result.clear == 4 || node.type != ASpinType::None || (eval_result.count == 0 && result.map_rise == 0);
+            int surge_atk = 0;
             // todo: detect garbage line
             if (is_b2b_move)
             {
@@ -1891,7 +1895,7 @@ namespace ai_zzz
             {
                 if (config_->season_2 && b2b > 4)
                 {
-                    atk += b2b - 1;
+                    surge_atk += b2b - 1;
                 }
                 b2b = 0;
             }
@@ -1921,7 +1925,7 @@ namespace ai_zzz
             {
                 atk = std::max(log1p(1.25 * combo_copy), atk);
             }
-            return static_cast<int>(floor(atk));
+            return static_cast<int>(floor((atk + surge_atk) * config_->multiplier));
         };
         switch (eval_result.clear)
         {
@@ -1930,11 +1934,11 @@ namespace ai_zzz
             result.combo = 0;
             if (status.under_attack > 0)
             {
-                result.map_rise = status.under_attack > GARBAGE_CAP ? GARBAGE_CAP : status.under_attack;
-                result.board_fill += status.under_attack > GARBAGE_CAP ? 72 : status.under_attack * 9;
+                result.map_rise = status.under_attack > config_->garbage_cap ? config_->garbage_cap : status.under_attack;
+                result.board_fill += status.under_attack > config_->garbage_cap ? 72 : status.under_attack * 9;
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
-                result.under_attack = result.under_attack > GARBAGE_CAP ? result.under_attack - GARBAGE_CAP : 0;
+                result.under_attack = status.under_attack > config_->garbage_cap ? status.under_attack - config_->garbage_cap : 0;
             }
             break;
         case 1:
@@ -2002,14 +2006,6 @@ namespace ai_zzz
             break;
         }
         result.board_fill -= (eval_result.clear * 10) - 4;
-        if (eval_result.map->roof < 7 && result.b2bcnt > 0)
-        {
-            result.like += 25 * (7 + node.type != ASpinType::None + eval_result.clear == 4);
-        }
-        else if (eval_result.map->roof < 7)
-        {
-            result.like -= 25 * eval_result.clear;
-        }
         if (eval_result.count == 0 && result.map_rise == 0)
         {
             if (!result.pc)
@@ -2050,39 +2046,39 @@ namespace ai_zzz
             }
             break;
         }
-        safe += eval_result.clear - result.map_rise;
-        if (safe <= 0 || node->row + result.map_rise >= 20)
+        safe -= result.map_rise;
+        if (safe <= 0 || (config_->lockout && eval_result.lockout))
             result.death = 1;
-        result.like += result.attack;
-        int ua = result.under_attack;
+        while (result.under_attack && result.attack) {
+            --result.under_attack;
+            --result.attack;
+        }
         result.board_fill_diff = int(std::max(0, result.board_fill - result.board_fill_prev));
-        result.under_attack = std::max(0, result.under_attack - result.attack);
-        result.attack = std::max(0, result.attack - ua);
         double rate = (1. / (depth + 1)) + 3;
-        double mul = std::max(0.0, ((0. + config_->next_size) / 10.0) / (config_->next_size - env.length));
+        int mul = config_->season_2 + 1;
+        result.like += result.attack;
         result.max_combo = std::max(result.combo, result.max_combo);
         result.value += ((0.
-            + (((result.attack * 256 * rate) * p.attack) 
-            + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot 
-            + ((safe >= 12 ? eval_result.t3_value * (t_expect < 2 ? 10 : 8)  / (6 + (result.board_fill_diff / 10)) : 0) * p.t3_slot) 
-            + ((node.type != ASpinType::None || eval_result.clear == 4 ? curAtk * 64 : 1) * (result.combo + 1) * mul
-            + p.b2b * (eval_result.map->roof <= 10 ? 16 * result.b2bcnt : 22 - eval_result.map->roof))
-            + result.like * 32) 
-            - ((result.board_fill_diff + result.board_fill) * (p.decision + result.under_attack + (std::max(0.0, (20 - safe) * p.safe))))) 
-            * std::max<double>(0.05, (full_count_ - result.board_fill) / double(full_count_)) 
-            + (result.max_combo * (result.max_combo - 1) * p.combo) 
+            + ((result.attack * 256 * rate * p.attack)
+                + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
+                + eval_result.t3_value * (t_expect < 2 ? 64 : 32) * p.t3_slot)
+            + (is_b2b_move * curAtk * 8 * mul  * (22 - eval_result.map->roof))
+            + (p.b2b * std::min(5, result.b2bcnt) * 8 * mul)
+            + (result.like * 32))
+            * std::max<double>(0.05, (full_count_ - eval_result.count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
+            + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)
             - result.death * 999999999.0);
         result.board_fill_prev = result.board_fill;
         return result;
     }
 
-    size_t IO::map_in_danger_(m_tetris::TetrisMap const &map, size_t t, size_t up) const
+    size_t IO::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
         if (up >= 20)
         {
             return 1;
         }
-        size_t height = 21 - up;
+        size_t height = 22 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 

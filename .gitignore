@@ -73,3 +73,5 @@ zzztoj.so
 moebuild
 main
 zzztoj
+/.cache
+/out

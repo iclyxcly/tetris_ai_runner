@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.0)
-project(tetris_ai)
+cmake_minimum_required(VERSION 3.10)
+set(CMAKE_CXX_STANDARD 17)
+project(tetris_ai_dll)
 add_library(${PROJECT_NAME} SHARED
     src/ai.cpp
     src/ai_ax.cpp
@@ -60,7 +61,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 
 
 project(top_pso)
-add_library(${PROJECT_NAME} SHARED
+add_executable(${PROJECT_NAME}
     src/ai_zzz.cpp
     src/integer_utils.cpp
     src/random.cpp
@@ -70,3 +71,25 @@ add_library(${PROJECT_NAME} SHARED
     src/ppt_pso.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE src)
+
+project(io_dll)
+add_library(${PROJECT_NAME} SHARED
+    src/io_dll.cpp
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/rule_io.cpp
+    src/search_amini.cpp
+    src/tetris_core.cpp
+)
+
+project(io_uds)
+add_executable(${PROJECT_NAME}
+    src/io_uds.cpp
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/rule_io.cpp
+    src/search_amini.cpp
+    src/tetris_core.cpp
+)

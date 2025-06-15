@@ -947,7 +947,7 @@ namespace m_tetris
             typedef TetrisNext<TetrisAI, typename TetrisAIHasIterate<TetrisAI>::type> next_t;
 
         public:
-            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), node_storage(_node_storage), free_list(nullptr), free_count(0), width(), total(), avg()
+            Context(std::deque<TetrisTreeNode> *_node_storage) : version(), is_complete(), is_open_hold(), max_length(0), node_storage(_node_storage), free_list(nullptr), free_count(0), width(), total(), avg()
             {
             }
 

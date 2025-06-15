@@ -1,6 +1,3 @@
-
-#pragma once
-
 #include "rule_st.h"
 
 using namespace m_tetris;

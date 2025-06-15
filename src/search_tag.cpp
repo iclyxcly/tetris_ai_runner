@@ -1,5 +1,4 @@
-﻿
-#include "search_tag.h"
+﻿#include "search_tag.h"
 #include "integer_utils.h"
 
 using namespace m_tetris;
@@ -171,7 +170,7 @@ namespace search_tag
         node_search_.clear();
         if(node->status.t == 'T')
         {
-            return search_t(map);
+            return search_t(map, node);
         }
         if(node->land_point != nullptr && node->low >= map.roof)
         {
@@ -376,7 +375,7 @@ namespace search_tag
             node_ex.last = last.first;
             node_ex.is_check = true;
             node_ex.is_last_rotate = last.second != ' ';
-            node_ex.is_ready = check_ready(map);
+            node_ex.is_ready = check_ready(map, node);
             land_point_cache_.push_back(node_ex);
         }
         return &land_point_cache_;

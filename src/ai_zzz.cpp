@@ -1009,7 +1009,7 @@ namespace ai_zzz
 
     size_t TOJ::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
-        if (up >= 20)
+        if (up >= 19)
         {
             return 1;
         }
@@ -1572,7 +1572,7 @@ namespace ai_zzz
 
     size_t TOJ_v08::map_in_danger_(m_tetris::TetrisMap const& map, size_t t, size_t up) const
     {
-        if (up >= 20)
+        if (up >= 19)
         {
             return 1;
         }
@@ -1613,7 +1613,7 @@ namespace ai_zzz
             TetrisMap map(context->width(), context->height());
             TetrisNode const *node = context->generate(i);
             node->attach(context, map);
-            std::memcpy(map_danger_data_[i].data, &map.row[18], sizeof map_danger_data_[i].data);
+            std::memcpy(map_danger_data_[i].data, &map.row[19], sizeof map_danger_data_[i].data);
             for (int y = 0; y < 3; ++y)
             {
                 map_danger_data_[i].data[y + 1] |= map_danger_data_[i].data[y];
@@ -2078,7 +2078,7 @@ namespace ai_zzz
         {
             return 1;
         }
-        size_t height = 22 - up;
+        size_t height = 23 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
     }
 

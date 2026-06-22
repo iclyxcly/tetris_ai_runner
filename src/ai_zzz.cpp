@@ -123,7 +123,10 @@ namespace ai_zzz
                 }
             }
             RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            if (map.roof != 0)
+            {
+                RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            }
             struct
             {
                 int HoleCount;
@@ -747,7 +750,10 @@ namespace ai_zzz
             }
         }
         RowTrans += ZZZ_BitCount(row_mask_ & ~t_map.row[0]);
-        RowTrans += ZZZ_BitCount(t_map.roof == t_map.height ? row_mask_ & ~t_map.row[t_map.roof - 1] : t_map.row[t_map.roof - 1]);
+        if (t_map.roof != 0)
+        {
+            RowTrans += ZZZ_BitCount(t_map.roof == t_map.height ? row_mask_ & ~t_map.row[t_map.roof - 1] : t_map.row[t_map.roof - 1]);
+        }
         struct
         {
             int HoleCount;
@@ -1056,7 +1062,10 @@ namespace ai_zzz
             }
         }
         RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        if (map.roof != 0)
+        {
+            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        }
 
         Result result;
         result.value = (map.roof > 4 ? 0 : 10000) - ColTrans * 3 - RowTrans * 2;
@@ -1200,7 +1209,10 @@ namespace ai_zzz
             }
         }
         RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        if (map.roof > 0)
+        {
+            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        }
         struct
         {
             int HoleCount;
@@ -1642,7 +1654,10 @@ namespace ai_zzz
             }
         }
         RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        if (map.roof != 0)
+        {
+            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        }
         struct
         {
             int HoleCount;
@@ -2120,7 +2135,10 @@ namespace ai_zzz
             }
         }
         RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
-        RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        if (map.roof != 0)
+        {
+            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+        }
         struct
         {
             int HoleCountSrc;

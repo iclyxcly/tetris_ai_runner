@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "search_simple.h"
 
 using namespace m_tetris;

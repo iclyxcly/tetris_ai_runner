@@ -1,6 +1,4 @@
 
-#pragma once
-
 #include "search_simulate.h"
 
 using namespace m_tetris;

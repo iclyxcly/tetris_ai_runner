@@ -154,34 +154,38 @@ namespace ai_zzz
     public:
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
-        struct Param
+        union Param
         {
-            double roof = 160;
-            double col_trans = 160;
-            double row_trans = 160;
-            double hole_count = 160;
-            double hole_line = 160;
-            double well_depth = 160;
-            double hole_depth = 160;
-            double b2b = 160;
-            double attack = 256;
-            double max_attack = 40;
-            double hold_t = 4;
-            double hold_i = 2;
-            double waste_t = -0;
-            double waste_i = -0;
-            double clear_1 = -0;
-            double clear_2 = -0;
-            double clear_3 = -0;
-            double clear_4 = 0;
-            double t2_slot = 1.5;
-            double t3_slot = 1;
-            double tspin_mini = -0;
-            double tspin_1 = 0;
-            double tspin_2 = 8;
-            double tspin_3 = 12;
-            double combo = 40;
-            double ratio = 1.5;
+            struct
+            {
+                double roof = 160;
+                double col_trans = 160;
+                double row_trans = 160;
+                double hole_count = 160;
+                double hole_line = 160;
+                double well_depth = 160;
+                double hole_depth = 160;
+                double b2b = 160;
+                double attack = 256;
+                double max_attack = 40;
+                double hold_t = 4;
+                double hold_i = 2;
+                double waste_t = -0;
+                double waste_i = -0;
+                double clear_1 = -0;
+                double clear_2 = -0;
+                double clear_3 = -0;
+                double clear_4 = 0;
+                double t2_slot = 1.5;
+                double t3_slot = 1;
+                double tspin_mini = -0;
+                double tspin_1 = 0;
+                double tspin_2 = 8;
+                double tspin_3 = 12;
+                double combo = 40;
+                double ratio = 1.5;
+            };
+            double data[64];
         };
         struct Config
         {
@@ -243,33 +247,42 @@ namespace ai_zzz
     public:
         typedef search_amini::Search::ASpinType ASpinType;
         typedef search_amini::Search::TetrisNodeWithASpinType TetrisNodeEx;
-        struct Param
+        union Param
         {
-            double roof = 128;
-            double col_trans = 160;
-            double row_trans = 160;
-            double hole_count = 80;
-            double hole_line = 380;
-            double well_depth = 100;
-            double hole_depth = 40;
-            double b2b = 128;
-            double attack = 1;
-            double hold_t = 4;
-            double hold_i = 2;
-            double waste_t = 0;
-            double waste_i = 0;
-            double clear_1 = 0;
-            double clear_2 = 0;
-            double clear_3 = 0;
-            double clear_4 = 1;
-            double t2_slot = 1.5;
-            double t3_slot = 1;
-            double tspin_mini = 0;
-            double tspin_1 = 0;
-            double tspin_2 = 8;
-            double tspin_3 = 12;
-            double combo = 30;
-            double ratio = 1.5;
+            struct 
+            {
+                // Board evaluation weights (used in eval())
+                double roof = 128;
+                double col_trans = 160;
+                double row_trans = 160;
+                double hole_count = 80;
+                double hole_line = 380;
+                double well_depth = 100;
+                double hole_depth = 40;
+                // Gameplay weights (used in get(), all hardcoded multipliers folded in)
+                double b2b = 1024;        // was 128, absorbs ×8
+                double attack = 256;      // was 1, absorbs ×256
+                double hold_t = 128;      // was 4, absorbs ×32 via like
+                double hold_i = 64;       // was 2, absorbs ×32 via like
+                double waste_t = 0;
+                double waste_i = 0;
+                double clear_1 = 0;
+                double clear_2 = 0;
+                double clear_3 = 0;
+                double clear_4 = 32;      // was 1, absorbs ×32 via like
+                double t2_slot = 384;     // was 1.5, absorbs ×256
+                double t3_slot = 64;      // was 1, absorbs ×64
+                double tspin_mini = 0;
+                double tspin_1 = 0;
+                double tspin_2 = 256;     // was 8, absorbs ×32 via like
+                double tspin_3 = 384;     // was 12, absorbs ×32 via like
+                double combo = 30;
+                double ratio = 1.5;
+                // New params (indices 25+)
+                double spin_combo = 64;          // replaces *64 on b2b_move_cnt * curAtk
+                double surge_utilization = 128;  // replaces hardcoded 128 in surge penalty
+            };
+            double data[64];
         };
         struct Config
         {
@@ -294,9 +307,12 @@ namespace ai_zzz
             int death;
             int combo;
             int attack;
+            int acc_attack;
+            int acc_surge_attack;
             int under_attack;
             int map_rise;
             int b2bcnt;
+            int b2b_move_cnt;
             double like;
             double value;
             bool operator<(Status const &) const;
@@ -330,37 +346,41 @@ namespace ai_zzz
     public:
         typedef search_tspin::Search::TSpinType TSpinType;
         typedef search_tspin::Search::TetrisNodeWithTSpinType TetrisNodeEx;
-        struct Param
+        union Param
         {
-            double base = 40;
-            double roof = 160;
-            double col_trans = 160;
-            double row_trans = 160;
-            double hole_count = 256;
-            double hole_line = 256;
-            double clear_width = 24;
-            double wide_2 = -64;
-            double wide_3 = -64;
-            double wide_4 = 8;
-            double safe = 16;
-            double b2b = 128;
-            double attack = 128;
-            double hold_t = 0.25;
-            double hold_i = 0.25;
-            double waste_t = -16;
-            double waste_i = -8;
-            double clear_1 = -64;
-            double clear_2 = -64;
-            double clear_3 = -64;
-            double clear_4 = 0;
-            double t2_slot = 0.75;
-            double t3_slot = 0.75;
-            double tspin_mini = -2;
-            double tspin_1 = 0;
-            double tspin_2 = 4;
-            double tspin_3 = 4;
-            double combo = 80;
-            double ratio = 0;
+            struct
+            {
+                double base = 40;
+                double roof = 160;
+                double col_trans = 160;
+                double row_trans = 160;
+                double hole_count = 256;
+                double hole_line = 256;
+                double clear_width = 24;
+                double wide_2 = -64;
+                double wide_3 = -64;
+                double wide_4 = 8;
+                double safe = 16;
+                double b2b = 128;
+                double attack = 128;
+                double hold_t = 0.25;
+                double hold_i = 0.25;
+                double waste_t = -16;
+                double waste_i = -8;
+                double clear_1 = -64;
+                double clear_2 = -64;
+                double clear_3 = -64;
+                double clear_4 = 0;
+                double t2_slot = 0.75;
+                double t3_slot = 0.75;
+                double tspin_mini = -2;
+                double tspin_1 = 0;
+                double tspin_2 = 4;
+                double tspin_3 = 4;
+                double combo = 80;
+                double ratio = 0;
+            };
+            double data[64];
         };
         struct Config
         {

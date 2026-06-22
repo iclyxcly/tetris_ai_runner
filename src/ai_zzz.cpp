@@ -1895,36 +1895,36 @@ namespace ai_zzz
 
         bool is_b2b_move = eval_result.clear == 4 || (eval_result.clear && node.type != ASpinType::None) || (config_->season_2 && eval_result.map->count == 0 && result.map_rise == 0);
 
-        auto get_attack = [&](const int &base_atk, int &combo, int &b2b)
+        auto generate_attack = [&]()
         {
-            ++combo;
-            double atk = base_atk;
+            ++result.combo;
+            double atk = baseAtk;
             int surge_atk = 0;
             // todo: detect garbage line
             if (is_b2b_move)
             {
-                ++b2b;
+                ++result.b2bcnt;
             }
             else
             {
-                if (config_->season_2 && b2b > 4)
+                if (config_->season_2 && result.b2bcnt > 4)
                 {
-                    surge_atk += b2b - 1;
+                    surge_atk += result.b2bcnt - 1;
                 }
-                b2b = 0;
+                result.b2bcnt = 0;
             }
             if (config_->season_2)
             {
-                if (eval_result.clear && b2b > 1)
+                if (eval_result.clear && result.b2bcnt > 1)
                 {
                     ++atk;
                 }
             }
             else
             {
-                if (b2b > 1)
+                if (result.b2bcnt > 1)
                 {
-                    int b2b_copy = b2b - 1;
+                    int b2b_copy = result.b2bcnt - 1;
                     double f = log1p(b2b_copy * 0.8);
                     while (f > 1)
                     {
@@ -1933,18 +1933,23 @@ namespace ai_zzz
                     atk += (floor(1 + log1p((b2b_copy) * 0.8)) + (b2b_copy == 1 ? 0 : (1 + f) / 3));
                 }
             }
-            int combo_copy = combo - 1;
+            int combo_copy = result.combo - 1;
             atk *= (1 + 0.25 * combo_copy);
             if (combo_copy > 1)
             {
                 atk = std::max(log1p(1.25 * combo_copy), atk);
             }
-            return static_cast<int>(floor((atk + surge_atk) * config_->multiplier));
+            int final_attack = static_cast<int>(floor((atk + surge_atk) * config_->multiplier));
+            result.acc_attack += final_attack;
+            result.acc_surge_attack += surge_atk;
+            return final_attack;
         };
         switch (eval_result.clear)
         {
         case 0:
             result.combo = 0;
+            result.acc_attack = 0;
+            result.acc_surge_attack = 0;
             if (status.under_attack > 0)
             {
                 result.map_rise = status.under_attack > config_->garbage_cap ? config_->garbage_cap : status.under_attack;
@@ -1971,7 +1976,7 @@ namespace ai_zzz
                 result.like += p.clear_1;
                 baseAtk = 0;
             }
-            result.attack += curAtk = get_attack(baseAtk, result.combo, result.b2bcnt);
+            result.attack += curAtk = generate_attack();
             break;
         case 2:
             if (node.type == ASpinType::ASpinMini || node.type == ASpinType::TSpinMini)
@@ -1991,7 +1996,7 @@ namespace ai_zzz
                 result.like += p.clear_2;
                 baseAtk = 1;
             }
-            result.attack += curAtk = get_attack(baseAtk, result.combo, result.b2bcnt);
+            result.attack += curAtk = generate_attack();
             break;
         case 3:
             if (node.type == ASpinType::ASpinMini || node.type == ASpinType::TSpinMini)
@@ -2009,11 +2014,11 @@ namespace ai_zzz
                 result.like += p.clear_3;
                 baseAtk = 2;
             }
-            result.attack += curAtk = get_attack(baseAtk, result.combo, result.b2bcnt);
+            result.attack += curAtk = generate_attack();
             break;
         case 4:
             baseAtk = 4;
-            result.attack += curAtk = get_attack(baseAtk, result.combo, result.b2bcnt);
+            result.attack += curAtk = generate_attack();
             result.like += (result.combo + result.b2bcnt) * (1 + result.attack) * p.clear_4;
             break;
         }
@@ -2064,15 +2069,18 @@ namespace ai_zzz
         }
         double rate = (1. / (depth + 1)) + 3;
         int mul = config_->season_2 + 1;
-        result.like += result.attack;
+        result.b2b_move_cnt = is_b2b_move ? result.b2b_move_cnt + 1 : 0;
         result.max_combo = std::max(result.combo, result.max_combo);
+        if (status.acc_attack && !result.acc_attack) {
+            result.like -= (static_cast<double>(status.acc_surge_attack) / status.acc_attack) * (p.surge_utilization - result.combo);
+        }
         result.value += ((0.
-            + ((result.attack * 256 * rate * p.attack)
-                + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) * 256 : 128) * p.t2_slot
-                + eval_result.t3_value * (t_expect < 2 ? 64 : 32) * p.t3_slot)
-            + (is_b2b_move * curAtk * 8 * mul  * (22 - eval_result.map->roof))
-            + (p.b2b * std::min(5, result.b2bcnt) * 8 * mul)
-            + (result.like * 32))
+            + ((result.attack * rate * p.attack)
+                + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) : 0.5) * p.t2_slot
+                + eval_result.t3_value * (t_expect < 2 ? 1 : 0.5) * p.t3_slot)
+            + (result.b2b_move_cnt * curAtk * p.spin_combo)
+            + (p.b2b * std::min(5, result.b2bcnt) * mul)
+            + (result.like))
             * std::max<double>(0.05, (full_count_ - eval_result.map->count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)
             - result.death * 999999999.0);

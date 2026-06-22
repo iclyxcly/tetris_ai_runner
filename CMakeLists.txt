@@ -93,3 +93,15 @@ add_executable(${PROJECT_NAME}
     src/search_amini.cpp
     src/tetris_core.cpp
 )
+
+project(io_spsa)
+add_executable(${PROJECT_NAME}
+    src/io_spsa.cpp
+    src/ai_zzz.cpp
+    src/integer_utils.cpp
+    src/random.cpp
+    src/rule_io.cpp
+    src/search_amini.cpp
+    src/tetris_core.cpp
+)
+target_include_directories(${PROJECT_NAME} PRIVATE src)

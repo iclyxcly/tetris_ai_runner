@@ -176,7 +176,6 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     srs_ai->status()->max_combo = 0;
     srs_ai->status()->attack = 0;
     srs_ai->status()->b2bcnt = b2b;
-    srs_ai->status()->board_fill = map.count;
 
     bot.elapsed_time = (clock() - bot.start_time) / CLOCKS_PER_SEC * 1000;
     if (!srs_ai->ai_config()->is_margin)

@@ -1930,12 +1930,10 @@ namespace ai_zzz
         switch (eval_result.clear)
         {
         case 0:
-            result.board_fill += 4;
             result.combo = 0;
             if (status.under_attack > 0)
             {
                 result.map_rise = status.under_attack > config_->garbage_cap ? config_->garbage_cap : status.under_attack;
-                result.board_fill += status.under_attack > config_->garbage_cap ? 72 : status.under_attack * 9;
                 result.like += (node->status.t == 'I') * p.waste_i;
                 result.like += (node->status.t == 'T') * p.waste_t;
                 result.under_attack = status.under_attack > config_->garbage_cap ? status.under_attack - config_->garbage_cap : 0;
@@ -2005,7 +2003,6 @@ namespace ai_zzz
             result.like += (result.combo + result.b2bcnt) * (1 + result.attack) * p.clear_4;
             break;
         }
-        result.board_fill -= (eval_result.clear * 10) - 4;
         if (eval_result.count == 0 && result.map_rise == 0)
         {
             if (!result.pc)
@@ -2053,7 +2050,6 @@ namespace ai_zzz
             --result.under_attack;
             --result.attack;
         }
-        result.board_fill_diff = int(std::max(0, result.board_fill - result.board_fill_prev));
         double rate = (1. / (depth + 1)) + 3;
         int mul = config_->season_2 + 1;
         result.like += result.attack;
@@ -2068,7 +2064,6 @@ namespace ai_zzz
             * std::max<double>(0.05, (full_count_ - eval_result.count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)
             - result.death * 999999999.0);
-        result.board_fill_prev = result.board_fill;
         return result;
     }
 

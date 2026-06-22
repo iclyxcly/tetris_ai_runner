@@ -301,9 +301,6 @@ namespace ai_zzz
             int map_rise;
             int b2bcnt;
             bool pc;
-            int board_fill;
-            int board_fill_prev;
-            int board_fill_diff;
             double like;
             double value;
             bool operator<(Status const &) const;

@@ -284,10 +284,8 @@ namespace ai_zzz
         {
             double value;
             int clear;
-            int count;
             int t2_value;
             int t3_value;
-            bool lockout;
             m_tetris::TetrisMap const *map;
         };
         struct Status

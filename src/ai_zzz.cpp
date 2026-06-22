@@ -1745,7 +1745,6 @@ namespace ai_zzz
         {
             result.value -= a[i].ClearWidth * rate;
         }
-        result.count = map.count + v.HoleCount;
         result.clear = clear;
         result.t2_value = 0;
         result.t3_value = 0;
@@ -1869,7 +1868,6 @@ namespace ai_zzz
                 }
             }
         }
-        result.lockout = node->row >= 20;
         return result;
     }
 
@@ -1889,12 +1887,13 @@ namespace ai_zzz
         Status result = status;
         result.value = eval_result.value;
         auto &p = config_->param;
-        int safe = node->row >= 20 ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next)
+        bool lockout = config_->lockout && node->row >= 20;
+        int safe = lockout ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next)
                                                          : eval_result.map->roof;
         int curAtk = 0;
         int baseAtk = 0;
 
-        bool is_b2b_move = eval_result.clear == 4 || (eval_result.clear && node.type != ASpinType::None) || (config_->season_2 && eval_result.count == 0 && result.map_rise == 0);
+        bool is_b2b_move = eval_result.clear == 4 || (eval_result.clear && node.type != ASpinType::None) || (config_->season_2 && eval_result.map->count == 0 && result.map_rise == 0);
 
         auto get_attack = [&](const int &base_atk, int &combo, int &b2b)
         {
@@ -2018,7 +2017,7 @@ namespace ai_zzz
             result.like += (result.combo + result.b2bcnt) * (1 + result.attack) * p.clear_4;
             break;
         }
-        if (eval_result.count == 0 && result.map_rise == 0)
+        if (eval_result.map->count == 0 && result.map_rise == 0)
         {
             if (!config_->pc)
             {
@@ -2057,7 +2056,7 @@ namespace ai_zzz
             break;
         }
         safe -= result.map_rise;
-        if (safe <= 0 || (config_->lockout && eval_result.lockout))
+        if (safe <= 0 || lockout)
             result.death = 1;
         while (result.under_attack && result.attack) {
             --result.under_attack;
@@ -2074,7 +2073,7 @@ namespace ai_zzz
             + (is_b2b_move * curAtk * 8 * mul  * (22 - eval_result.map->roof))
             + (p.b2b * std::min(5, result.b2bcnt) * 8 * mul)
             + (result.like * 32))
-            * std::max<double>(0.05, (full_count_ - eval_result.count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
+            * std::max<double>(0.05, (full_count_ - eval_result.map->count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)
             - result.death * 999999999.0);
         return result;

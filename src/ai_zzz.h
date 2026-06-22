@@ -273,13 +273,11 @@ namespace ai_zzz
         };
         struct Config
         {
-            bool is_margin;
             bool season_2;
             bool lockout;
             int multiplier;
             int garbage_cap;
             bool pc;
-            clock_t start_count;
             Param param;
         };
         struct Result

@@ -2011,8 +2011,6 @@ namespace ai_zzz
             }
             result.attack += curAtk += config_->season_2 ? 5 : 10;
         }
-        if (config_->is_margin)
-            result.attack += (int)std::floor((((clock() - config_->start_count) / 1000.0) * GARBAGE_INCREASE) * curAtk);
         size_t t_expect = [=]() -> int
         {
             if (env.hold == 'T')

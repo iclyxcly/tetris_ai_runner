@@ -21,7 +21,6 @@ struct BotInstance
 {
     std::unique_ptr<Bot> bot;
     std::string buffer;
-    clock_t margin_start_time = 0, elapsed_time = 0, start_time = 0;
     BotInstance()
     {
         bot = std::make_unique<Bot>();
@@ -29,12 +28,8 @@ struct BotInstance
     }
     void new_game(const JSON &cfg)
     {
-        start_time = clock();
-        margin_start_time = 0;
-        elapsed_time = 0;
         bot->ai_config()->garbage_cap = GARBAGE_CAP;
         bot->ai_config()->multiplier = 1;
-        bot->ai_config()->is_margin = false;
         bot->ai_config()->season_2 = cfg["season"].get<int>() == 2;
         bot->ai_config()->lockout = false;
 
@@ -177,16 +172,6 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     srs_ai->status()->max_combo = 0;
     srs_ai->status()->attack = 0;
     srs_ai->status()->b2bcnt = b2b;
-
-    bot.elapsed_time = (clock() - bot.start_time) / CLOCKS_PER_SEC * 1000;
-    if (!srs_ai->ai_config()->is_margin)
-    {
-        if (bot.elapsed_time > GARBAGE_MARGIN_TIME)
-        {
-            srs_ai->ai_config()->is_margin = true;
-            srs_ai->ai_config()->start_count = clock();
-        }
-    }
 
     srs_ai->memory_limit(512ull << 20);
     srs_ai->status()->death = 0;

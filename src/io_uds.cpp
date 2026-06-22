@@ -173,6 +173,7 @@ std::string run_ai(BotInstance &bot, const JSON &data)
         0.104364933113540087061821282,   8.660904648990943144326593028,
         12.172353417045528090056905057,  30.511480066561279755887881038,
         1.585887060974324525020051624};
+    srs_ai->ai_config()->pc = can_pc;
     srs_ai->status()->max_combo = 0;
     srs_ai->status()->attack = 0;
     srs_ai->status()->b2bcnt = b2b;
@@ -198,7 +199,6 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     srs_ai->status()->map_rise = 0;
     srs_ai->status()->like = 0;
     srs_ai->status()->value = 0;
-    srs_ai->status()->pc = can_pc;
 
     m_tetris::TetrisBlockStatus status(active, 3, y, 0);
     m_tetris::TetrisNode const *node = srs_ai->get(status);

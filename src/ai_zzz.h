@@ -278,6 +278,7 @@ namespace ai_zzz
             bool lockout;
             int multiplier;
             int garbage_cap;
+            bool pc;
             clock_t start_count;
             Param param;
         };
@@ -300,7 +301,6 @@ namespace ai_zzz
             int under_attack;
             int map_rise;
             int b2bcnt;
-            bool pc;
             double like;
             double value;
             bool operator<(Status const &) const;

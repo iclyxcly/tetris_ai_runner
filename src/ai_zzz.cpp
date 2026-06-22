@@ -2005,7 +2005,7 @@ namespace ai_zzz
         }
         if (eval_result.count == 0 && result.map_rise == 0)
         {
-            if (!result.pc)
+            if (!config_->pc)
             {
                 result.death = 1;
             }

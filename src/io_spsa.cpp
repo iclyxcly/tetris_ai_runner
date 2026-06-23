@@ -22,36 +22,43 @@
 struct ParamBound { double min, max, step; };
 
 static ParamBound const param_bounds[] = {
-    {   0,  500, 16.0  }, // roof      
-    {   0,  500, 24.0  }, // col_trans 
-    {   0,  500, 24.0  }, // row_trans 
-    {   0,  500, 12.0  }, // hole_count
-    {   0, 1000, 57.0  }, // hole_line 
-    {   0,  500, 15.0  }, // well_depth
-    {   0,  500,  6.0  }, // hole_depth
-    {   0, 4000, 154.0 }, // b2b       
-    {   0, 2000, 38.0  }, // attack    
-    {   0,  500, 19.0  }, // hold_t    
-    {   0,  300, 10.0  }, // hold_i    
-    {-200,  200, 16.0  }, // waste_t   
-    {-200,  200, 16.0  }, // waste_i   
-    {-200,  200, 16.0  }, // clear_1   
-    {-200,  200, 16.0  }, // clear_2   
-    {-200,  200, 16.0  }, // clear_3   
-    {   0,  200,  4.8  }, // clear_4   
-    {   0, 2000, 58.0  }, // t2_slot   
-    {   0,  500, 10.0  }, // t3_slot   
-    {-100,  100,  8.0  }, // tspin_mini
-    {-100,  100,  8.0  }, // tspin_1   
-    {   0,  500, 38.0  }, // tspin_2   
-    {   0,  800, 58.0  }, // tspin_3   
-    {   0,  200,  4.5  }, // combo     
-    {   0,   10,  0.23 }, // ratio     
-    {   0,  200, 10.0  }, // spin_combo
-    {   0,  500, 19.0  }, // surge_utilization
+    {-1000, 1000, 10.0  }, // roof      
+    {-1000, 1000, 10.0  }, // col_trans 
+    {-1000, 1000, 10.0  }, // row_trans 
+    {-1000, 1000, 10.0  }, // hole_count
+    {-1000, 1000, 10.0  }, // hole_line 
+    {-1000, 1000, 10.0  }, // well_depth
+    {-1000, 1000, 10.0  }, // hole_depth
+    {   0 , 1000, 50.0  }, // b2b       
+    {   0 , 1000, 50.0  }, // attack    
+    {-500 ,  500,  5.0  }, // hold_t    
+    {-500 ,  500,  5.0  }, // hold_i    
+    {-500 ,  500,  5.0  }, // waste_t   
+    {-500 ,  500,  5.0  }, // waste_i   
+    {-500 ,  500, 10.0  }, // clear_1   
+    {-500 ,  500, 10.0  }, // clear_2   
+    {-500 ,  500, 10.0  }, // clear_3   
+    {-500 ,  500, 10.0  }, // clear_4   
+    {-1000, 1000, 10.0  }, // t2_slot   
+    {-1000, 1000, 10.0  }, // t3_slot   
+    {-1000, 1000, 10.0  }, // tspin_mini
+    {-1000, 1000, 10.0  }, // tspin_1   
+    {-1000, 1000, 10.0  }, // tspin_2   
+    {-1000, 1000, 10.0  }, // tspin_3   
+    {-1000, 1000, 10.0  }, // combo     
+    {   0 ,    5,  0.1 }, // ratio     
+    {-1000, 1000, 10.0  }, // spin_combo
+    {-1000, 1000, 10.0  }, // surge_utilization
 };
 
 size_t const NUM_PARAMS = sizeof(param_bounds) / sizeof(param_bounds[0]);
+
+static double const param_rates[NUM_PARAMS] = {
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+    1.0, 1.0, 1.0, 1.0, 1.0, 1.0,     
+};
 
 // ---------------------------------------------------------------------------
 // SPSA gain schedule
@@ -540,7 +547,7 @@ int main(int argc, char *argv[]) {
         }
 
         for (int i = 0; i < NUM_PARAMS; ++i)
-            theta[i] += ak * param_bounds[i].step * param_bounds[i].step * grad[i];
+            theta[i] += ak * param_rates[i] * param_bounds[i].step * param_bounds[i].step * grad[i];
         clamp_params(theta);
 
         {

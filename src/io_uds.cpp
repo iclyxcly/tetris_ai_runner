@@ -1,4 +1,5 @@
 #include <iostream>
+#include <limits>
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
@@ -134,7 +135,20 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     }
     int b2b = data["b2b"].get<int>();
     int combo = data["combo"].get<int>();
-    int upcomeAtt = data["pending"].get<int>();
+
+    {
+        auto &ud = srs_ai->status()->under_attack;
+
+        for (const auto& garbage : data["garbageQueue"])
+        {
+            int lines = std::min<int>(garbage["lines"].get<int>(), std::numeric_limits<uint8_t>::max());
+            int steps = std::min<int>(garbage["steps"].get<int>(), std::numeric_limits<uint8_t>::max());
+            if (lines > 0 && steps > 0)
+            {
+                ud.push({static_cast<uint8_t>(lines), static_cast<uint8_t>(steps)});
+            }
+        }
+    }
 
     m_tetris::TetrisMap map(10, 40);
     for (size_t d = 0; d < 23; ++d)
@@ -154,20 +168,6 @@ std::string run_ai(BotInstance &bot, const JSON &data)
         }
     }
 
-    srs_ai->ai_config()->param = {
-        128.848632018967037993206758983, 159.486229165944052965642185882,
-        161.917442316092603959987172857, 81.770591639349177626172604505,
-        381.778776257560934936918783933, 98.094088345045122423471184447,
-        34.677952239613162532805290539,  129.220619858914346878009382635,
-        0.911925860653483022488785537,   3.743571313305298797757814100,
-        3.153364454826400375964112754,   0.007065131195186014588516255,
-        -0.081683675915617898199982960,  -0.954530616937390941068031225,
-        1.612455139641955748075474730,   0.570015487183247460123425299,
-        1.093367709554965427898309827,   1.511144844202827464130223234,
-        1.007928243238619847588211087,   -0.740554584228065859718981301,
-        0.104364933113540087061821282,   8.660904648990943144326593028,
-        12.172353417045528090056905057,  30.511480066561279755887881038,
-        1.585887060974324525020051624};
     srs_ai->ai_config()->pc = can_pc;
     srs_ai->status()->max_combo = 0;
     srs_ai->status()->attack = 0;
@@ -176,11 +176,6 @@ std::string run_ai(BotInstance &bot, const JSON &data)
     srs_ai->memory_limit(512ull << 20);
     srs_ai->status()->death = 0;
     srs_ai->status()->combo = combo;
-    if (srs_ai->status()->under_attack != upcomeAtt)
-    {
-        srs_ai->update();
-    }
-    srs_ai->status()->under_attack = upcomeAtt;
     srs_ai->status()->map_rise = 0;
     srs_ai->status()->like = 0;
     srs_ai->status()->value = 0;

@@ -301,6 +301,25 @@ namespace ai_zzz
             int t3_value;
             m_tetris::TetrisMap const *map;
         };
+        struct Garbage
+        {
+            uint8_t lines;
+            uint8_t steps;
+        };
+        struct GarbageQueue
+        {
+            static constexpr size_t QUEUE_MAX = 16;
+            Garbage queue[QUEUE_MAX];
+            uint8_t size;
+            void push(Garbage garbage);
+            void pop_front(int count = 1);
+            int reduce(int attack);
+            void tick();
+            int take_damage(int cap);
+            void clear();
+            bool empty() const;
+            int sum() const;
+        };
         struct Status
         {
             int max_combo;
@@ -309,7 +328,7 @@ namespace ai_zzz
             int attack;
             int acc_attack;
             int acc_surge_attack;
-            int under_attack;
+            GarbageQueue under_attack;
             int map_rise;
             int b2bcnt;
             int b2b_move_cnt;

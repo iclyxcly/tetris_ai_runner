@@ -183,14 +183,21 @@ extern "C" DECLSPEC_EXPORT const char* __cdecl TetrisAI(const Field* field, cons
     srs_ai.memory_limit(1024ull << 20);
     srs_ai.status()->death = 0;
     srs_ai.status()->combo = status->combo;
-    int upcomeAtt = std::accumulate(status->upcomeAtt, status->upcomeAtt + UPCOMEATT_SIZE, 0, [](int a, int b) {
-        return a + b;
-        });
-    if (srs_ai.status()->under_attack != upcomeAtt)
     {
-        srs_ai.update();
+        auto &ud = srs_ai.status()->under_attack;
+        ud.clear();
+        for (int i = 0; i < UPCOMEATT_SIZE; ++i)
+        {
+            if (status->upcomeAtt[i] > 0)
+            {
+                ud.push({static_cast<uint8_t>(status->upcomeAtt[i]), 0});
+            }
+            else
+            {
+                break;
+            }
+        }
     }
-    srs_ai.status()->under_attack = upcomeAtt;
     srs_ai.status()->map_rise = 0;
     srs_ai.status()->like = 0;
     srs_ai.status()->value = 0;

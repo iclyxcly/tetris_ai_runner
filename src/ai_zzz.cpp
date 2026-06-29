@@ -1950,13 +1950,9 @@ namespace ai_zzz
             result.combo = 0;
             result.acc_attack = 0;
             result.acc_surge_attack = 0;
-            if (status.under_attack > 0)
-            {
-                result.map_rise = status.under_attack > config_->garbage_cap ? config_->garbage_cap : status.under_attack;
-                result.like += (node->status.t == 'I') * p.waste_i;
-                result.like += (node->status.t == 'T') * p.waste_t;
-                result.under_attack = status.under_attack > config_->garbage_cap ? status.under_attack - config_->garbage_cap : 0;
-            }
+            result.map_rise += result.under_attack.take_damage(config_->garbage_cap);
+            result.like += (node->status.t == 'I') * p.waste_i;
+            result.like += (node->status.t == 'T') * p.waste_t;
             break;
         case 1:
             if (node.type == ASpinType::ASpinMini || node.type == ASpinType::TSpinMini)
@@ -2063,10 +2059,7 @@ namespace ai_zzz
         safe -= result.map_rise;
         if (safe <= 0 || lockout)
             result.death = 1;
-        while (result.under_attack && result.attack) {
-            --result.under_attack;
-            --result.attack;
-        }
+        result.attack = result.under_attack.reduce(result.attack);
         double rate = (1. / (depth + 1)) + 3;
         int mul = config_->season_2 + 1;
         result.b2b_move_cnt = is_b2b_move ? result.b2b_move_cnt + 1 : 0;
@@ -2084,6 +2077,7 @@ namespace ai_zzz
             * std::max<double>(0.05, (full_count_ - eval_result.map->count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)
             - result.death * 999999999.0);
+        result.under_attack.tick();
         return result;
     }
 
@@ -2095,6 +2089,100 @@ namespace ai_zzz
         }
         size_t height = 23 - up;
         return map_danger_data_[t].data[0] & map.row[height - 4] | map_danger_data_[t].data[1] & map.row[height - 3] | map_danger_data_[t].data[2] & map.row[height - 2] | map_danger_data_[t].data[3] & map.row[height - 1];
+    }
+
+    void IO::GarbageQueue::push(Garbage garbage) {
+        if (size < QUEUE_MAX)
+        {
+            queue[size++] = garbage;
+        }
+    }
+
+    void IO::GarbageQueue::pop_front(int count)
+    {
+        if (count >= size)
+        {
+            size = 0;
+        }
+        else
+        {
+            std::memmove(queue, queue + count, sizeof(Garbage) * (size - count));
+            size -= count;
+        }
+    }
+
+    int IO::GarbageQueue::reduce(int attack)
+    {
+        int access = 0;
+        while (attack && size)
+        {
+            if (queue[access].lines > attack)
+            {
+                queue[access].lines -= attack;
+                attack = 0;
+            }
+            else
+            {
+                attack -= queue[access].lines;
+                access++;
+            }
+        }
+        pop_front(access);
+        return attack;
+    }
+
+    void IO::GarbageQueue::tick()
+    {
+        for (size_t i = 0; i < size; ++i)
+        {
+            if (queue[i].steps > 0)
+            {
+                queue[i].steps--;
+            }
+        }
+    }
+
+    int IO::GarbageQueue::take_damage(int cap)
+    {
+        int damage = 0;
+        int access = 0;
+        while (size && queue[access].steps == 0 && cap > 0)
+        {
+            if (queue[access].lines > cap)
+            {
+                queue[access].lines -= cap;
+                damage += cap;
+                cap = 0;
+            }
+            else
+            {
+                cap -= queue[access].lines;
+                damage += queue[access].lines;
+                access++;
+            }
+        }
+        pop_front(access);
+        return damage;
+    }
+
+    void IO::GarbageQueue::clear()
+    {
+        size = 0;
+    }
+
+    bool IO::GarbageQueue::empty() const
+    {
+        return size == 0;
+    }
+
+    int IO::GarbageQueue::sum() const
+    {
+        int total = 0;
+        for (size_t i = 0; i < size; ++i)
+        {
+            total += queue[i].lines;
+        }
+        return total;
     }
 
     bool C2::Status::operator < (Status const& other) const

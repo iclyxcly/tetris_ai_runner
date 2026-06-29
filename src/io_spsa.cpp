@@ -145,7 +145,7 @@ struct BotInstance {
     int search_ms = 20;
     bool season_2 = false;
     std::vector<char> next;
-    std::deque<int> recv_attack;
+    ai_zzz::IO::GarbageQueue recv_attack;
     int send_attack = 0;
     int combo = 0;
     int b2bcnt = 0;
@@ -204,7 +204,7 @@ struct BotInstance {
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->attack = 0;
-        ai.status()->under_attack = (int)std::accumulate(recv_attack.begin(), recv_attack.end(), 0);
+        ai.status()->under_attack = recv_attack;
         ai.status()->map_rise = 0;
         ai.status()->b2bcnt = b2bcnt;
         ai.status()->like = 0;
@@ -311,31 +311,20 @@ struct BotInstance {
         ++total_block;
         total_attack += cur_atk;
         send_attack = cur_atk + surge_atk;
+        send_attack = recv_attack.reduce(send_attack);
 
         int cap = GARBAGE_CAP;
-        while (!recv_attack.empty()) {
-            if (send_attack > 0) {
-                if (recv_attack.front() <= send_attack) {
-                    send_attack -= recv_attack.front();
-                    recv_attack.pop_front();
-                    continue;
-                } else {
-                    recv_attack.front() -= send_attack;
-                    send_attack = 0;
-                }
-            }
-            if (send_attack > 0 || combo > 0) break;
+        while (!recv_attack.empty() && recv_attack.queue[0].steps == 0 && cap > 0) {
+            if (combo > 0) break;
 
             int line = 0;
-            bool limited = false;
-            if (cap < recv_attack.front()) {
-                limited = true;
+            if (cap < recv_attack.queue[0].lines) {
                 line = cap;
-                recv_attack.front() -= cap;
+                recv_attack.queue[0].lines -= cap;
                 cap = 0;
             } else {
-                cap -= recv_attack.front();
-                line = recv_attack.front();
+                cap -= recv_attack.queue[0].lines;
+                line = recv_attack.queue[0].lines;
                 recv_attack.pop_front();
             }
             total_receive += line;
@@ -356,12 +345,12 @@ struct BotInstance {
                     }
                 }
             }
-            if (limited) break;
         }
+        recv_attack.tick();
     }
 
     void under_attack(int line) {
-        if (line > 0) recv_attack.emplace_back(line);
+        if (line > 0) recv_attack.push({static_cast<uint8_t>(line), 1});
     }
 };
 
@@ -377,8 +366,8 @@ static void render_view(BotInstance &b1, BotInstance &b2) {
         if (n2) { m_tetris::TetrisMap tmp = b2.map; n2->attach(b2.ai.context().get(), tmp); m2 = tmp; }
     }
 
-    int up1 = (int)std::accumulate(b1.recv_attack.begin(), b1.recv_attack.end(), 0);
-    int up2 = (int)std::accumulate(b2.recv_attack.begin(), b2.recv_attack.end(), 0);
+    int up1 = b1.recv_attack.sum();
+    int up2 = b2.recv_attack.sum();
 
     printf("\033[H"); // move cursor home
     printf("HOLD=%c NXT=%c%c%c%c%c CMB=%d B2B=%d UP=%2d ATK=%4d BLK=%4d\n",

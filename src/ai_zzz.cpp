@@ -2113,7 +2113,7 @@ namespace ai_zzz
     int IO::GarbageQueue::reduce(int attack)
     {
         int access = 0;
-        while (attack && size)
+        while (attack && access < size)
         {
             if (queue[access].lines > attack)
             {
@@ -2145,7 +2145,7 @@ namespace ai_zzz
     {
         int damage = 0;
         int access = 0;
-        while (size && queue[access].steps == 0 && cap > 0)
+        while (access < size && queue[access].steps == 0 && cap > 0)
         {
             if (queue[access].lines > cap)
             {

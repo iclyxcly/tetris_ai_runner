@@ -2061,7 +2061,6 @@ namespace ai_zzz
             result.death = 1;
         result.attack = result.under_attack.reduce(result.attack);
         double rate = (1. / (depth + 1)) + 3;
-        int mul = config_->season_2 + 1;
         result.b2b_move_cnt = is_b2b_move ? result.b2b_move_cnt + 1 : 0;
         result.max_combo = std::max(result.combo, result.max_combo);
         if (status.acc_attack && !result.acc_attack) {
@@ -2072,7 +2071,7 @@ namespace ai_zzz
                 + eval_result.t2_value * (t_expect < 4 ? (3 - t_expect) : 0.5) * p.t2_slot
                 + eval_result.t3_value * (t_expect < 2 ? 1 : 0.5) * p.t3_slot)
             + (result.b2b_move_cnt * curAtk * p.spin_combo)
-            + (p.b2b * std::min(5, result.b2bcnt) * mul)
+            + (p.b2b * result.b2bcnt)
             + (result.like))
             * std::max<double>(0.05, (full_count_ - eval_result.map->count - (result.map_rise * (context_->width() - 1))) / double(full_count_))
             + (result.max_combo * (result.max_combo - 1) * (curAtk * (status.b2bcnt <= result.b2bcnt)) *p.combo)

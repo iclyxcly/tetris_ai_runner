@@ -260,7 +260,7 @@ namespace ai_zzz
                 double well_depth = 100;
                 double hole_depth = 40;
                 // Gameplay weights (used in get(), all hardcoded multipliers folded in)
-                double b2b = 1024;        // was 128, absorbs ×8
+                double b2b = 2048;        // was 128, absorbs ×8
                 double attack = 256;      // was 1, absorbs ×256
                 double hold_t = 128;      // was 4, absorbs ×32 via like
                 double hold_i = 64;       // was 2, absorbs ×32 via like

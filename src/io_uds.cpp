@@ -138,6 +138,7 @@ std::string run_ai(BotInstance &bot, const JSON &data)
 
     {
         auto &ud = srs_ai->status()->under_attack;
+        ud.clear();
 
         for (const auto& garbage : data["garbageQueue"])
         {

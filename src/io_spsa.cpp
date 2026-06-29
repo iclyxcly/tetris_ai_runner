@@ -18,40 +18,37 @@
 #include "rule_io.h"
 #include "ai_setting.h"
 
-
-struct ParamBound { double min, max, step; };
-
-static ParamBound const param_bounds[] = {
-    {-1000, 1000, 10.0  }, // roof      
-    {-1000, 1000, 10.0  }, // col_trans 
-    {-1000, 1000, 10.0  }, // row_trans 
-    {-1000, 1000, 10.0  }, // hole_count
-    {-1000, 1000, 10.0  }, // hole_line 
-    {-1000, 1000, 10.0  }, // well_depth
-    {-1000, 1000, 10.0  }, // hole_depth
-    {   0 , 1000, 50.0  }, // b2b       
-    {   0 , 1000, 50.0  }, // attack    
-    {-500 ,  500,  5.0  }, // hold_t    
-    {-500 ,  500,  5.0  }, // hold_i    
-    {-500 ,  500,  5.0  }, // waste_t   
-    {-500 ,  500,  5.0  }, // waste_i   
-    {-500 ,  500, 10.0  }, // clear_1   
-    {-500 ,  500, 10.0  }, // clear_2   
-    {-500 ,  500, 10.0  }, // clear_3   
-    {-500 ,  500, 10.0  }, // clear_4   
-    {-1000, 1000, 10.0  }, // t2_slot   
-    {-1000, 1000, 10.0  }, // t3_slot   
-    {-1000, 1000, 10.0  }, // tspin_mini
-    {-1000, 1000, 10.0  }, // tspin_1   
-    {-1000, 1000, 10.0  }, // tspin_2   
-    {-1000, 1000, 10.0  }, // tspin_3   
-    {-1000, 1000, 10.0  }, // combo     
-    {   0 ,    5,  0.1 }, // ratio     
-    {-1000, 1000, 10.0  }, // spin_combo
-    {-1000, 1000, 10.0  }, // surge_utilization
+static double const param_step[] = {
+    10.0, // roof      
+    10.0, // col_trans 
+    10.0, // row_trans 
+    10.0, // hole_count
+    10.0, // hole_line 
+    10.0, // well_depth
+    10.0, // hole_depth
+    50.0, // b2b       
+    50.0, // attack    
+     5.0, // hold_t    
+     5.0, // hold_i    
+     5.0, // waste_t   
+     5.0, // waste_i   
+    10.0, // clear_1   
+    10.0, // clear_2   
+    10.0, // clear_3   
+    10.0, // clear_4   
+    10.0, // t2_slot   
+    10.0, // t3_slot   
+    10.0, // tspin_mini
+    10.0, // tspin_1   
+    10.0, // tspin_2   
+    10.0, // tspin_3   
+    10.0, // combo     
+     0.1, // ratio     
+    10.0, // spin_combo
+    10.0, // surge_utilization
 };
 
-size_t const NUM_PARAMS = sizeof(param_bounds) / sizeof(param_bounds[0]);
+size_t const NUM_PARAMS = sizeof(param_step) / sizeof(param_step[0]);
 
 static double const param_rates[NUM_PARAMS] = {
     0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 
@@ -91,13 +88,6 @@ static void array_to_param(double const *in, ai_zzz::IO::Param &p) {
     for (int i = 0; i < NUM_PARAMS; ++i) p.data[i] = in[i];
 }
 
-static void clamp_params(double *theta) {
-    for (int i = 0; i < NUM_PARAMS; ++i) {
-        if (theta[i] < param_bounds[i].min) theta[i] = param_bounds[i].min;
-        if (theta[i] > param_bounds[i].max) theta[i] = param_bounds[i].max;
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Load default IO::Param values
 // ---------------------------------------------------------------------------
@@ -111,7 +101,7 @@ static void load_default_params(double *out) {
         380.0,   // hole_line
         100.0,   // well_depth
          40.0,   // hole_depth
-       1024.0,   // b2b         
+       2048.0,   // b2b         
         256.0,   // attack      
         128.0,   // hold_t      
          64.0,   // hold_i      
@@ -413,9 +403,7 @@ static double evaluate(IOEngine &global_ai, double const *theta,
     double perturb[NUM_PARAMS];
     memcpy(perturb, theta, sizeof(perturb[0]) * NUM_PARAMS);
     for (int i = 0; i < NUM_PARAMS; ++i) {
-        perturb[i] += (rng() & 1 ? 1 : -1) * param_bounds[i].step * 0.5;
-        if (perturb[i] < param_bounds[i].min) perturb[i] = param_bounds[i].min;
-        if (perturb[i] > param_bounds[i].max) perturb[i] = param_bounds[i].max;
+        perturb[i] += (rng() & 1 ? 1 : -1) * param_step[i] * 0.5;
     }
     double total = 0.0;
     for (int m = 0; m < num_matches; ++m) {
@@ -508,12 +496,10 @@ int main(int argc, char *argv[]) {
 
         double theta_plus[NUM_PARAMS], theta_minus[NUM_PARAMS];
         for (int i = 0; i < NUM_PARAMS; ++i) {
-            double step = ck * param_bounds[i].step * delta[i];
+            double step = ck * param_step[i] * delta[i];
             theta_plus[i]  = theta[i] + step;
             theta_minus[i] = theta[i] - step;
         }
-        clamp_params(theta_plus);
-        clamp_params(theta_minus);
 
         int m = std::max(1, eval_matches);
         double total_result = 0.0;
@@ -530,14 +516,13 @@ int main(int argc, char *argv[]) {
 
         double grad[NUM_PARAMS];
         for (int i = 0; i < NUM_PARAMS; ++i) {
-            double denom = 2.0 * ck * param_bounds[i].step * delta[i];
+            double denom = 2.0 * ck * param_step[i] * delta[i];
             if (std::fabs(denom) < 1e-15) denom = 1e-15;
             grad[i] = score_diff / denom;
         }
 
         for (int i = 0; i < NUM_PARAMS; ++i)
-            theta[i] += ak * param_rates[i] * param_bounds[i].step * param_bounds[i].step * grad[i];
-        clamp_params(theta);
+            theta[i] += ak * param_rates[i] * param_step[i] * param_step[i] * grad[i];
 
         {
             std::ofstream ofs(data_file, std::ios::binary);

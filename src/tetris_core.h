@@ -1878,11 +1878,11 @@ namespace m_tetris
             {
                 return std::make_pair(nullptr, nullptr);
             }
-            auto status = &best->status.get_raw();
             while (best->parent->parent != nullptr)
             {
                 best = best->parent;
             }
+            auto status = &best->status.get_raw();
             return std::make_pair(best, status);
         }
     };

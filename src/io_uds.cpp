@@ -144,7 +144,7 @@ std::string run_ai(BotInstance &bot, const JSON &data)
         {
             int lines = std::min<int>(garbage["lines"].get<int>(), std::numeric_limits<uint8_t>::max());
             int steps = std::min<int>(garbage["steps"].get<int>(), std::numeric_limits<uint8_t>::max());
-            if (lines > 0 && steps > 0)
+            if (lines > 0)
             {
                 ud.push({static_cast<uint8_t>(lines), static_cast<uint8_t>(steps)});
             }

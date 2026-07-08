@@ -194,6 +194,9 @@ struct BotInstance {
         ai.status()->death = 0;
         ai.status()->combo = combo;
         ai.status()->attack = 0;
+        ai.status()->acc_attack = 0;
+        ai.status()->acc_surge_attack = 0;
+        ai.status()->b2b_move_cnt = 0;
         ai.status()->under_attack = recv_attack;
         ai.status()->map_rise = 0;
         ai.status()->b2bcnt = b2bcnt;

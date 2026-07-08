@@ -179,6 +179,9 @@ extern "C" DECLSPEC_EXPORT const char* __cdecl TetrisAI(const Field* field, cons
 
     srs_ai.status()->max_combo = 0;
     srs_ai.status()->attack = 0;
+    srs_ai.status()->acc_attack = 0;
+    srs_ai.status()->acc_surge_attack = 0;
+    srs_ai.status()->b2b_move_cnt = 0;
     srs_ai.status()->b2bcnt = status->b2b;
     srs_ai.memory_limit(1024ull << 20);
     srs_ai.status()->death = 0;

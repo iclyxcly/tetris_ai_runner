@@ -240,6 +240,9 @@ struct test_ai
 		ai.status()->board_fill = map.count;
 		ai.status()->max_combo = 0;
 		ai.status()->attack = 0;
+		ai.status()->acc_attack = 0;
+		ai.status()->acc_surge_attack = 0;
+		ai.status()->b2b_move_cnt = 0;
 #endif
 		ai.status()->death = 0;
 		ai.status()->pc = true;

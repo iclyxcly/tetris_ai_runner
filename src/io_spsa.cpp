@@ -17,6 +17,7 @@
 #include "ai_zzz.h"
 #include "rule_io.h"
 #include "ai_setting.h"
+#include "io_param.h"
 
 static double const param_step[] = {
     10.0, // roof      
@@ -89,10 +90,15 @@ static void array_to_param(double const *in, ai_zzz::IO::Param &p) {
 }
 
 // ---------------------------------------------------------------------------
-// Load default IO::Param values
+// Load IO::Param values — try the tagged binary file first, fall back to
+// the hardcoded defaults in ai_zzz.h.
 // ---------------------------------------------------------------------------
-static void load_default_params(double *out) {
-    // Matches the anonymous-struct defaults in ai_zzz.h
+static void load_params(double *out, const std::string &tag = "") {
+    if (IOParam::read(out, NUM_PARAMS, tag)) {
+        printf("[SPSA] Loaded best parameters from %s\n", IOParam::filename(tag).c_str());
+        return;
+    }
+    // Hardcoded defaults from ai_zzz.h
     double const dflt[NUM_PARAMS] = {
         128.0,   // roof
         160.0,   // col_trans
@@ -136,6 +142,7 @@ struct BotInstance {
     bool season_2 = false;
     std::vector<char> next;
     ai_zzz::IO::GarbageQueue recv_attack;
+    ai_zzz::IO::GarbageQueue network_recv_attack;
     int send_attack = 0;
     int combo = 0;
     int b2bcnt = 0;
@@ -158,6 +165,7 @@ struct BotInstance {
         r_garbage.seed(r_next());
         next.clear();
         recv_attack.clear();
+        network_recv_attack.clear();
         send_attack = 0;
         combo = 0;
         b2bcnt = 0;
@@ -305,6 +313,7 @@ struct BotInstance {
         total_attack += cur_atk;
         send_attack = cur_atk + surge_atk;
         send_attack = recv_attack.reduce(send_attack);
+        send_attack = network_recv_attack.reduce(send_attack);
 
         int cap = GARBAGE_CAP;
         while (!recv_attack.empty() && recv_attack.queue[0].steps == 0 && cap > 0) {
@@ -339,11 +348,19 @@ struct BotInstance {
                 }
             }
         }
+
+        while(!network_recv_attack.empty() && network_recv_attack.queue[0].steps == 0)
+        {
+            recv_attack.push({network_recv_attack.queue[0].lines, 1});
+            network_recv_attack.pop_front();
+        }
+
         recv_attack.tick();
+        network_recv_attack.tick();
     }
 
     void under_attack(int line) {
-        if (line > 0) recv_attack.push({static_cast<uint8_t>(line), 1});
+        if (line > 0) network_recv_attack.push({static_cast<uint8_t>(line), 0});
     }
 };
 
@@ -359,8 +376,8 @@ static void render_view(BotInstance &b1, BotInstance &b2) {
         if (n2) { m_tetris::TetrisMap tmp = b2.map; n2->attach(b2.ai.context().get(), tmp); m2 = tmp; }
     }
 
-    int up1 = b1.recv_attack.sum();
-    int up2 = b2.recv_attack.sum();
+    int up1 = b1.recv_attack.sum() + b1.network_recv_attack.sum();
+    int up2 = b2.recv_attack.sum() + b2.network_recv_attack.sum();
 
     printf("\033[H"); // move cursor home
     printf("HOLD=%c NXT=%c%c%c%c%c CMB=%d B2B=%d UP=%2d ATK=%4d BLK=%4d\n",
@@ -426,12 +443,14 @@ int main(int argc, char *argv[]) {
     int season       = 1;
     int num_iters    = 10000;
     int eval_matches = 1;
-    std::string data_file = "spsa_data.bin";
 
     if (argc > 1) season       = std::stoi(argv[1]);
     if (argc > 2) num_iters    = std::stoi(argv[2]);
     if (argc > 3) eval_matches = std::stoi(argv[3]);
-    if (argc > 4) data_file    = argv[4];
+
+    std::string tag = "s" + std::to_string(season);
+    std::string data_file = IOParam::tag_filename("spsa_data.bin", tag);
+
     bool season_2 = (season == 2);
 
     std::mt19937 rng((unsigned)std::random_device{}());
@@ -441,7 +460,7 @@ int main(int argc, char *argv[]) {
 
     double theta[NUM_PARAMS];
 
-    load_default_params(theta);
+    load_params(theta, tag);
 
     int resume_k = 0;
     {
@@ -450,25 +469,11 @@ int main(int argc, char *argv[]) {
             ifs.read(reinterpret_cast<char*>(&resume_k), sizeof(resume_k));
             ifs.read(reinterpret_cast<char*>(theta), sizeof(theta));
             ifs.close();
-            printf("[SPSA] Resumed from iteration %d\n", resume_k);
+            printf("[SPSA] Resumed from iteration %d (overrides best_io_param)\n", resume_k);
         } else {
             printf("[SPSA] Starting fresh\n");
         }
     }
-
-    auto save_params = [&](double const *t, int iter, double score) {
-        std::ofstream ofs("best_io_param.txt");
-        ofs.precision(27);
-        ofs << "// ITER: " << iter << "\n// ∇: " << score << "\n";
-        ofs << "srs_ai->ai_config()->param = {\n    ";
-        for (int i = 0; i < NUM_PARAMS; ++i) {
-            ofs << std::fixed << t[i];
-            if (i < NUM_PARAMS - 1) ofs << ", ";
-            if ((i + 1) % 5 == 0 && i < NUM_PARAMS - 1) ofs << "\n    ";
-        }
-        ofs << "\n};\n";
-        ofs.close();
-    };
 
     SpsaSchedule sched = default_schedule;
     printf("[SPSA] %d iters, %d matches/eval, 1000 rounds/match, 20ms search, season %d\n",
@@ -535,17 +540,19 @@ int main(int argc, char *argv[]) {
             ofs.close();
         }
 
+        // Save best params every iteration
+        IOParam::write(theta, NUM_PARAMS, tag);
         if ((k + 1) % 10 == 0 || k == resume_k) {
-            save_params(theta, k, score_diff);
             auto now = std::chrono::steady_clock::now();
             double sec = std::chrono::duration<double>(now - start_time).count();
             printf("[SPSA] iter %5d | ∇=%+.6f | ak=%.6f ck=%.6f | %.1fs\n",
                     k, score_diff, ak, ck, sec);
-            fflush(stdout);
         }
+        fflush(stdout);
     }
 
-    save_params(theta, num_iters - 1, 0);
+    // Final save
+    IOParam::write(theta, NUM_PARAMS, tag);
     {
         std::ofstream ofs(data_file, std::ios::binary);
         int sk = num_iters;
@@ -555,6 +562,6 @@ int main(int argc, char *argv[]) {
     }
 
     printf("\n[SPSA] Done. %d iterations completed\n", num_iters);
-    printf("[SPSA] Params saved to best_io_param.txt\n");
+    printf("[SPSA] Params saved to %s\n", IOParam::filename(tag).c_str());
     return 0;
 }

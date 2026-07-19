@@ -1889,7 +1889,7 @@ namespace ai_zzz
         auto &p = config_->param;
         bool lockout = config_->lockout && node->row >= 20;
         int safe = lockout ? -1 : env.length > 0 ? get_safe(*eval_result.map, *env.next)
-                                                         : eval_result.map->roof;
+                                                         : (22 - eval_result.map->roof);
         int curAtk = 0;
         int baseAtk = 0;
 
@@ -2022,7 +2022,7 @@ namespace ai_zzz
         {
             if (!config_->pc)
             {
-                result.death = 1;
+                ++result.death;
             }
             result.attack += curAtk += config_->season_2 ? 5 : 10;
         }
@@ -2057,12 +2057,15 @@ namespace ai_zzz
             break;
         }
         safe -= result.map_rise;
-        if (safe <= 0 || lockout)
-            result.death = 1;
+        if (safe <= 0 || lockout || status.death)
+        {
+            ++result.death;
+        }
         result.attack = result.under_attack.reduce(result.attack);
         double rate = (1. / (depth + 1)) + 3;
         result.b2b_move_cnt = is_b2b_move ? result.b2b_move_cnt + 1 : 0;
         result.max_combo = std::max(result.combo, result.max_combo);
+        int b2b_cnt = config_->season_2 ? result.b2bcnt : std::min(7, result.b2bcnt);
         if (status.acc_attack && !result.acc_attack) {
             result.like -= (static_cast<double>(status.acc_surge_attack) / status.acc_attack) * (p.surge_utilization - result.combo);
         }

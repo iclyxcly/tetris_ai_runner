@@ -251,7 +251,6 @@ namespace ai_zzz
         {
             struct 
             {
-                // Board evaluation weights (used in eval())
                 double roof = 128;
                 double col_trans = 160;
                 double row_trans = 160;
@@ -259,28 +258,26 @@ namespace ai_zzz
                 double hole_line = 380;
                 double well_depth = 100;
                 double hole_depth = 40;
-                // Gameplay weights (used in get(), all hardcoded multipliers folded in)
-                double b2b = 2048;        // was 128, absorbs ×8
-                double attack = 256;      // was 1, absorbs ×256
-                double hold_t = 128;      // was 4, absorbs ×32 via like
-                double hold_i = 64;       // was 2, absorbs ×32 via like
+                double b2b = 2048;
+                double attack = 256;
+                double hold_t = 128;
+                double hold_i = 64;
                 double waste_t = 0;
                 double waste_i = 0;
                 double clear_1 = 0;
                 double clear_2 = 0;
                 double clear_3 = 0;
-                double clear_4 = 32;      // was 1, absorbs ×32 via like
-                double t2_slot = 384;     // was 1.5, absorbs ×256
-                double t3_slot = 64;      // was 1, absorbs ×64
+                double clear_4 = 32;
+                double t2_slot = 384;
+                double t3_slot = 64;
                 double tspin_mini = 0;
                 double tspin_1 = 0;
-                double tspin_2 = 256;     // was 8, absorbs ×32 via like
-                double tspin_3 = 384;     // was 12, absorbs ×32 via like
+                double tspin_2 = 256;
+                double tspin_3 = 384;
                 double combo = 30;
                 double ratio = 1.5;
-                // New params (indices 25+)
-                double spin_combo = 64;          // replaces *64 on b2b_move_cnt * curAtk
-                double surge_utilization = 128;  // replaces hardcoded 128 in surge penalty
+                double spin_combo = 64;
+                double surge_utilization = 128;
             };
             double data[64];
         };

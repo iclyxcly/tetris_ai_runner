@@ -2,12 +2,11 @@
 //by ZouZhiZhang
 
 #include "tetris_core.h"
-#include "integer_utils.h"
+#include <bit>
 #include "ai_misaka.h"
 #include <cstdint>
 
 using namespace m_tetris;
-using namespace zzz;
 
 
 namespace ai_misaka

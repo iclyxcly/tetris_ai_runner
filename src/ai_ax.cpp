@@ -4,7 +4,7 @@
 
 #include "tetris_core.h"
 #include "ai_ax.h"
-#include "integer_utils.h"
+#include <bit>
 
 using namespace m_tetris;
 
@@ -53,7 +53,7 @@ namespace ai_ax
         const int width_m1 = map.width - 1;
         //行列变换
         int ColTrans = 2 * (map.height - map.roof);
-        int RowTrans = ZZZ_BitCount(row_mask_ ^ map.row[0]) + ZZZ_BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        int RowTrans = std::popcount<uint32_t>(row_mask_ ^ map.row[0]) + std::popcount<uint32_t>(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
         for(int y = 0; y < map.roof; ++y)
         {
             if(!map.full(0, y))
@@ -64,10 +64,10 @@ namespace ai_ax
             {
                 ++ColTrans;
             }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if(y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
         struct
@@ -100,7 +100,7 @@ namespace ai_ax
             int LineHole = v.LineCoverBits ^ map.row[y];
             if(LineHole != 0)
             {
-                v.HoleCount += ZZZ_BitCount(LineHole);
+                v.HoleCount += std::popcount<uint32_t>(LineHole);
                 v.HoleLine++;
                 if(v.HolePosy == 0)
                 {
@@ -158,7 +158,7 @@ namespace ai_ax
                 {
                     break;
                 }
-                v.HolePiece += (y + 1) * ZZZ_BitCount(CheckLine);
+                v.HolePiece += (y + 1) * std::popcount<uint32_t>(CheckLine);
             }
         }
 

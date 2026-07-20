@@ -4,7 +4,7 @@
 
 #include "tetris_core.h"
 #include "ai_farter.h"
-#include "integer_utils.h"
+#include <bit>
 
 using namespace m_tetris;
 
@@ -33,11 +33,11 @@ namespace
             }
             for(int i = 0; i < max_height; ++i)
             {
-                row_count[i] = i < map->height ? ZZZ_BitCount(map->row[i]) : 0;
+                row_count[i] = i < map->height ? std::popcount<uint32_t>(map->row[i]) : 0;
             }
             for(int y = 0; y < node->height; ++y)
             {
-                row_count[node->row + y] += ZZZ_BitCount(node->data[y]);
+                row_count[node->row + y] += std::popcount<uint32_t>(node->data[y]);
             }
             block_count = 0;
             for(int x = node->col; x < node->col + node->width; ++x)

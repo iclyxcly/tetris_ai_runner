@@ -1,5 +1,5 @@
 #include "search_tspin.h"
-#include "integer_utils.h"
+#include <bit>
 
 using namespace m_tetris;
 
@@ -1101,7 +1101,7 @@ namespace search_tspin
         int row = block_data_[node->status.x];
         if (y == 0)
         {
-            return ZZZ_BitCount(map.row[1] & row) + 2 >= 3;
+            return std::popcount<uint32_t>(map.row[1] & row) + 2 >= 3;
         }
         else
         {
@@ -1114,7 +1114,7 @@ namespace search_tspin
             {
                 count = 0;
             }
-            return ZZZ_BitCount(map.row[y - 1] & row) + ZZZ_BitCount(map.row[y + 1] & row) + count >= 3;
+            return std::popcount<uint32_t>(map.row[y - 1] & row) + std::popcount<uint32_t>(map.row[y + 1] & row) + count >= 3;
         }
     }
 

@@ -2,13 +2,12 @@
 //by ZouZhiZhang
 
 #include "tetris_core.h"
-#include "integer_utils.h"
+#include <bit>
 #include "ai_zzz.h"
 #include "ai_setting.h"
 #include <cstdint>
 
 using namespace m_tetris;
-using namespace zzz;
 
 namespace
 {
@@ -116,16 +115,16 @@ namespace ai_zzz
             int RowTrans = map.roof == map.height ? 0 : map.width;
             for (int y = 0; y < map.roof; ++y)
             {
-                ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+                ColTrans += !map.full(0, y) + !map.full(width_m1, y) + std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
                 if (y != 0)
                 {
-                    RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                    RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
                 }
             }
-            RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+            RowTrans += std::popcount<uint32_t>(row_mask_ & ~map.row[0]);
             if (map.roof != 0)
             {
-                RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+                RowTrans += std::popcount<uint32_t>(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
             }
             struct
             {
@@ -154,7 +153,7 @@ namespace ai_zzz
                 int LineHole = v.LineCoverBits ^ map.row[y];
                 if (LineHole != 0)
                 {
-                    v.HoleCount += ZZZ_BitCount(LineHole);
+                    v.HoleCount += std::popcount<uint32_t>(LineHole);
                     v.HoleLine++;
                     if (v.HolePosy == 0)
                     {
@@ -211,7 +210,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    v.HolePiece += (y + 1) * ZZZ_BitCount(CheckLine);
+                    v.HolePiece += (y + 1) * std::popcount<uint32_t>(CheckLine);
                 }
             }
             int low_x;
@@ -378,13 +377,13 @@ namespace ai_zzz
     {
         const int width_m1 = map.width - 1;
         size_t ColTrans = 2 * (map.height - map.roof);
-        size_t RowTrans = ZZZ_BitCount(row_mask_ ^ map.row[0]) + ZZZ_BitCount(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
+        size_t RowTrans = std::popcount<uint32_t>(row_mask_ ^ map.row[0]) + std::popcount<uint32_t>(map.roof == map.height ? ~row_mask_ & map.row[map.roof - 1] : map.row[map.roof - 1]);
         for (int y = 0; y < map.roof; ++y)
         {
-            ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += !map.full(0, y) + !map.full(width_m1, y) + std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
         struct
@@ -413,7 +412,7 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ map.row[y];
             if (LineHole != 0)
             {
-                v.HoleCount += ZZZ_BitCount(LineHole);
+                v.HoleCount += std::popcount<uint32_t>(LineHole);
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
                 for (int hy = y + 1; hy < map.roof; ++hy)
@@ -423,7 +422,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * ZZZ_BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * std::popcount<uint32_t>(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -550,7 +549,7 @@ namespace ai_zzz
         int row_bit_count_global[40];
         for (int y = 0; y < map.roof; ++y)
         {
-            row_bit_count_global[y] = ZZZ_BitCount(map.row[y]);
+            row_bit_count_global[y] = std::popcount<uint32_t>(map.row[y]);
         }
         memset(row_bit_count_global + map.roof, 0, sizeof(int) * (40 - map.roof));
         t2_value_ref = 0;
@@ -743,16 +742,16 @@ namespace ai_zzz
         size_t RowTrans = t_map.roof == t_map.height ? 0 : t_map.width;
         for (int y = 0; y < t_map.roof; ++y)
         {
-            ColTrans += !t_map.full(0, y) + !t_map.full(width_m1, y) + ZZZ_BitCount((t_map.row[y] ^ (t_map.row[y] << 1)) & col_mask_);
+            ColTrans += !t_map.full(0, y) + !t_map.full(width_m1, y) + std::popcount<uint32_t>((t_map.row[y] ^ (t_map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(t_map.row[y - 1] ^ t_map.row[y]);
+                RowTrans += std::popcount<uint32_t>(t_map.row[y - 1] ^ t_map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~t_map.row[0]);
+        RowTrans += std::popcount<uint32_t>(row_mask_ & ~t_map.row[0]);
         if (t_map.roof != 0)
         {
-            RowTrans += ZZZ_BitCount(t_map.roof == t_map.height ? row_mask_ & ~t_map.row[t_map.roof - 1] : t_map.row[t_map.roof - 1]);
+            RowTrans += std::popcount<uint32_t>(t_map.roof == t_map.height ? row_mask_ & ~t_map.row[t_map.roof - 1] : t_map.row[t_map.roof - 1]);
         }
         struct
         {
@@ -773,18 +772,18 @@ namespace ai_zzz
             int LineHole = v.LineCoverBits ^ t_map.row[y];
             if (LineHole != 0)
             {
-                v.HoleCount += ZZZ_BitCount(LineHole);
+                v.HoleCount += std::popcount<uint32_t>(LineHole);
                 ++v.HoleLine;
                 for (int hy = y + 1, hy_max = std::min(t_map.roof, hy + 8); hy < hy_max; ++hy)
                 {
                     uint32_t CheckLine = LineHole & t_map.row[hy];
                     if (CheckLine > 0)
                     {
-                        v.ClearWidth += (t_map.width - ZZZ_BitCount(t_map.row[hy])) * hy;
+                        v.ClearWidth += (t_map.width - std::popcount<uint32_t>(t_map.row[hy])) * hy;
                     }
                 }
             }
-            WideCount = std::min<int>(WideCount, t_map.width - ZZZ_BitCount(v.LineCoverBits));
+            WideCount = std::min<int>(WideCount, t_map.width - std::popcount<uint32_t>(v.LineCoverBits));
             if (v.HoleLine == 0)
             {
                 ++v.Wide[WideCount];
@@ -1055,16 +1054,16 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += std::popcount<uint32_t>(row_mask_ & ~map.row[0]);
         if (map.roof != 0)
         {
-            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            RowTrans += std::popcount<uint32_t>(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         }
 
         Result result;
@@ -1202,16 +1201,16 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += std::popcount<uint32_t>(row_mask_ & ~map.row[0]);
         if (map.roof > 0)
         {
-            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            RowTrans += std::popcount<uint32_t>(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         }
         struct
         {
@@ -1241,7 +1240,7 @@ namespace ai_zzz
             {
                 ++v.HoleLine;
                 a[v.HolePosyIndex].ClearWidth = 0;
-                v.HoleCount += ZZZ_BitCount(LineHole);
+                v.HoleCount += std::popcount<uint32_t>(LineHole);
                 for (int hy = y + 1; hy < map.roof; ++hy)
                 {
                     uint32_t CheckLine = LineHole & map.row[hy];
@@ -1249,7 +1248,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * std::popcount<uint32_t>(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -1327,10 +1326,10 @@ namespace ai_zzz
             {
                 if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
                 {
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         result.t2_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 3)
+                        if (std::popcount<uint32_t>(row1) == map.width - 3)
                         {
                             result.t2_value += 2;
                             int row2_check = (row2 >> x) & 7;
@@ -1348,16 +1347,16 @@ namespace ai_zzz
                 if (((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
                 {
                     int t3_value = 0;
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         t3_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        if (std::popcount<uint32_t>(row1) == map.width - 2)
                         {
                             t3_value += 1;
                             if (((row2 >> x) & 15) == 11)
                             {
                                 t3_value += 2;
-                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                if (std::popcount<uint32_t>(row2) == map.width - 1)
                                 {
                                     t3_value += 2;
                                 }
@@ -1391,16 +1390,16 @@ namespace ai_zzz
                 if (((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
                 {
                     int t3_value = 0;
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         t3_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        if (std::popcount<uint32_t>(row1) == map.width - 2)
                         {
                             t3_value += 1;
                             if (((row2 >> x) & 15) == 13)
                             {
                                 t3_value += 2;
-                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                if (std::popcount<uint32_t>(row2) == map.width - 1)
                                 {
                                     t3_value += 2;
                                 }
@@ -1647,16 +1646,16 @@ namespace ai_zzz
             {
                 ++ColTrans;
             }
-            ColTrans += ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += std::popcount<uint32_t>(row_mask_ & ~map.row[0]);
         if (map.roof != 0)
         {
-            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            RowTrans += std::popcount<uint32_t>(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         }
         struct
         {
@@ -1693,7 +1692,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * ZZZ_BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1) * std::popcount<uint32_t>(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -1762,10 +1761,10 @@ namespace ai_zzz
             {
                 if (((row0 >> x) & 7) == 5 && ((row1 >> x) & 7) == 0)
                 {
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         result.t2_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 3)
+                        if (std::popcount<uint32_t>(row1) == map.width - 3)
                         {
                             result.t2_value += 2;
                             int row2_check = (row2 >> x) & 7;
@@ -1783,16 +1782,16 @@ namespace ai_zzz
                 if (((row0 >> x) & 15) == 11 && ((row1 >> x) & 15) == 9)
                 {
                     int t3_value = 0;
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         t3_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        if (std::popcount<uint32_t>(row1) == map.width - 2)
                         {
                             t3_value += 1;
                             if (((row2 >> x) & 15) == 11)
                             {
                                 t3_value += 2;
-                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                if (std::popcount<uint32_t>(row2) == map.width - 1)
                                 {
                                     t3_value += 2;
                                 }
@@ -1826,16 +1825,16 @@ namespace ai_zzz
                 if (((row0 >> x) & 15) == 13 && ((row1 >> x) & 15) == 9)
                 {
                     int t3_value = 0;
-                    if (ZZZ_BitCount(row0) == map.width - 1)
+                    if (std::popcount<uint32_t>(row0) == map.width - 1)
                     {
                         t3_value += 1;
-                        if (ZZZ_BitCount(row1) == map.width - 2)
+                        if (std::popcount<uint32_t>(row1) == map.width - 2)
                         {
                             t3_value += 1;
                             if (((row2 >> x) & 15) == 13)
                             {
                                 t3_value += 2;
-                                if (ZZZ_BitCount(row2) == map.width - 1)
+                                if (std::popcount<uint32_t>(row2) == map.width - 1)
                                 {
                                     t3_value += 2;
                                 }
@@ -2225,16 +2224,16 @@ namespace ai_zzz
         size_t RowTrans = map.roof == map.height ? 0 : map.width;
         for (int y = 0; y < map.roof; ++y)
         {
-            ColTrans += !map.full(0, y) + !map.full(width_m1, y) + ZZZ_BitCount((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
+            ColTrans += !map.full(0, y) + !map.full(width_m1, y) + std::popcount<uint32_t>((map.row[y] ^ (map.row[y] << 1)) & col_mask_);
             if (y != 0)
             {
-                RowTrans += ZZZ_BitCount(map.row[y - 1] ^ map.row[y]);
+                RowTrans += std::popcount<uint32_t>(map.row[y - 1] ^ map.row[y]);
             }
         }
-        RowTrans += ZZZ_BitCount(row_mask_ & ~map.row[0]);
+        RowTrans += std::popcount<uint32_t>(row_mask_ & ~map.row[0]);
         if (map.roof != 0)
         {
-            RowTrans += ZZZ_BitCount(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
+            RowTrans += std::popcount<uint32_t>(map.roof == map.height ? row_mask_ & ~map.row[map.roof - 1] : map.row[map.roof - 1]);
         }
         struct
         {
@@ -2273,7 +2272,7 @@ namespace ai_zzz
                     {
                         break;
                     }
-                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * ZZZ_BitCount(CheckLine);
+                    a[v.HolePosyIndex].ClearWidth += (hy + 1 + config_->p[0]) * config_->p[1] * std::popcount<uint32_t>(CheckLine);
                 }
                 ++v.HolePosyIndex;
             }
@@ -2339,7 +2338,7 @@ namespace ai_zzz
             }
             if (MaxWellWidth >= 1 && MaxWellWidth <= 6)
             {
-                if (ZZZ_BitCount(map.row[y]) + MaxWellWidth == map.width)
+                if (std::popcount<uint32_t>(map.row[y]) + MaxWellWidth == map.width)
                 {
                     v.WideWellDepth[MaxWellWidth - 1] += 2;
                 }

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 23)
 project(tetris_ai_dll)
 add_library(${PROJECT_NAME} SHARED
     src/ai.cpp
@@ -8,7 +8,6 @@ add_library(${PROJECT_NAME} SHARED
     src/ai_misaka.cpp
     src/ai_tag.cpp
     src/dllmain.c
-    src/integer_utils.cpp
     src/rule_asrs.cpp
     src/search_path.cpp
     src/search_simple.cpp
@@ -38,7 +37,6 @@ add_library(${PROJECT_NAME} SHARED
     src/ai_misaka.cpp
     src/ai_tag.cpp
     src/dllmain.c
-    src/integer_utils.cpp
     src/rule_asrs.cpp
     src/search_path.cpp
     src/search_simple.cpp
@@ -63,7 +61,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE src)
 project(top_pso)
 add_executable(${PROJECT_NAME}
     src/ai_zzz.cpp
-    src/integer_utils.cpp
     src/random.cpp
     src/rule_srs.cpp
     src/search_tspin.cpp
@@ -76,7 +73,6 @@ project(io_dll)
 add_library(${PROJECT_NAME} SHARED
     src/io_dll.cpp
     src/ai_zzz.cpp
-    src/integer_utils.cpp
     src/random.cpp
     src/rule_io.cpp
     src/search_amini.cpp
@@ -87,7 +83,6 @@ project(io_uds)
 add_executable(${PROJECT_NAME}
     src/io_uds.cpp
     src/ai_zzz.cpp
-    src/integer_utils.cpp
     src/random.cpp
     src/rule_io.cpp
     src/search_amini.cpp
@@ -98,10 +93,10 @@ project(io_spsa)
 add_executable(${PROJECT_NAME}
     src/io_spsa.cpp
     src/ai_zzz.cpp
-    src/integer_utils.cpp
     src/random.cpp
     src/rule_io.cpp
     src/search_amini.cpp
     src/tetris_core.cpp
 )
 target_include_directories(${PROJECT_NAME} PRIVATE src)
+target_compile_options(${PROJECT_NAME} PRIVATE -mpopcnt)

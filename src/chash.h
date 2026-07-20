@@ -126,7 +126,7 @@ protected:
     };
     struct value_t
     {
-        typename std::aligned_storage<sizeof(value_type), std::alignment_of<value_type>::value>::type value_pod;
+        alignas(value_type) unsigned char value_pod[sizeof(value_type)];
 
         value_type *value()
         {
@@ -138,9 +138,9 @@ protected:
         }
     };
 
-    typedef typename allocator_type::template rebind<offset_type>::other bucket_allocator_t;
-    typedef typename allocator_type::template rebind<index_t>::other index_allocator_t;
-    typedef typename allocator_type::template rebind<value_t>::other value_allocator_t;
+    typedef typename std::allocator_traits<allocator_type>::template rebind_alloc<offset_type> bucket_allocator_t;
+    typedef typename std::allocator_traits<allocator_type>::template rebind_alloc<index_t> index_allocator_t;
+    typedef typename std::allocator_traits<allocator_type>::template rebind_alloc<value_t> value_allocator_t;
     struct root_t : public hasher, public key_equal, public bucket_allocator_t, public index_allocator_t, public value_allocator_t
     {
         template<class any_hasher, class any_key_equal, class any_allocator_type> root_t(any_hasher &&hash, any_key_equal &&equal, any_allocator_type &&alloc)

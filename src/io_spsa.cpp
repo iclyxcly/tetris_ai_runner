@@ -425,16 +425,22 @@ static double evaluate(IOEngine &global_ai, double const *theta,
     for (int i = 0; i < NUM_PARAMS; ++i) {
         perturb[i] += (rng() & 1 ? 1 : -1) * param_step[i] * 0.5;
     }
-    double total = 0.0;
+    int win_threshold = (num_matches + 1) / 2;
+    int wins_theta = 0, wins_perturb = 0;
+    int matches_played = 0;
     for (int m = 0; m < num_matches; ++m) {
         BotInstance b1(global_ai), b2(global_ai);
         b1.season_2 = b2.season_2 = season_2;
         b1.init(theta);
         b2.init(perturb);
         auto [app1, app2] = play_match(b1, b2, 1000, view_cb);
-        total += app1 - app2;
+        if (app1 > app2) ++wins_theta;
+        else if (app2 > app1) ++wins_perturb;
+        ++matches_played;
+        if (wins_theta >= win_threshold || wins_perturb >= win_threshold)
+            break;
     }
-    return total / num_matches;
+    return matches_played > 0 ? (double)(wins_theta - wins_perturb) / matches_played : 0.0;
 }
 
 int main(int argc, char *argv[]) {
@@ -510,7 +516,9 @@ int main(int argc, char *argv[]) {
         }
 
         int m = std::max(1, eval_matches);
-        double total_result = 0.0;
+        int win_threshold = (m + 1) / 2;
+        int wins_plus = 0, wins_minus = 0;
+        int matches_played = 0;
         for (int i = 0; i < m; ++i) {
             BotInstance plus(global_ai), minus(global_ai);
             plus.season_2 = minus.season_2 = season_2;
@@ -518,9 +526,13 @@ int main(int argc, char *argv[]) {
             minus.init(theta_minus);
             auto view_cb = [&]() { if (view.load()) render_view(plus, minus); };
             auto [app_plus, app_minus] = play_match(plus, minus, 1000, view_cb);
-            total_result += app_plus - app_minus;
+            if (app_plus > app_minus) ++wins_plus;
+            else if (app_minus > app_plus) ++wins_minus;
+            ++matches_played;
+            if (wins_plus >= win_threshold || wins_minus >= win_threshold)
+                break;
         }
-        double score_diff = total_result / m;
+        double score_diff = matches_played > 0 ? (double)(wins_plus - wins_minus) / matches_played : 0.0;
 
         double grad[NUM_PARAMS];
         for (int i = 0; i < NUM_PARAMS; ++i) {

@@ -1,4 +1,5 @@
-﻿#define _CRT_SECURE_NO_WARNINGS
+﻿#include <unistd.h>
+#define _CRT_SECURE_NO_WARNINGS
 #include <ctime>
 #include <fstream>
 #include <thread>
@@ -143,7 +144,7 @@ struct BotInstance {
     std::vector<char> next;
     ai_zzz::IO::GarbageQueue recv_attack;
     ai_zzz::IO::GarbageQueue network_recv_attack;
-    int send_attack = 0;
+    std::deque<int> send_attack;
     int combo = 0;
     int b2bcnt = 0;
     char hold = ' ';
@@ -166,7 +167,7 @@ struct BotInstance {
         next.clear();
         recv_attack.clear();
         network_recv_attack.clear();
-        send_attack = 0;
+        send_attack.clear();
         combo = 0;
         b2bcnt = 0;
         hold = ' ';
@@ -242,9 +243,8 @@ struct BotInstance {
         int clear = result.target->attach(ai.context().get(), map);
         total_clear += clear;
 
-        int cur_atk = 0;
         int base = 0;
-        int surge_atk = 0;
+        send_attack.clear();
 
         auto is_b2b_move = [&]() {
             return clear == 4 || (clear && spin != ASpinType::None) || (season_2 && map.count == 0);
@@ -287,33 +287,53 @@ struct BotInstance {
             if (is_b2b_move()) {
                 ++b2bcnt;
             } else {
-                if (season_2 && b2bcnt > 4) surge_atk += b2bcnt - 1;
+                if (season_2 && b2bcnt > 4) {
+                    int surge_atk = b2bcnt - 1;
+                    int div = surge_atk / 3;
+                    send_attack.push_back(div);
+                    send_attack.push_back(div);
+                    send_attack.push_back(surge_atk - div * 2);
+                }
                 b2bcnt = 0;
             }
-            cur_atk = base;
             if (season_2) {
-                if (clear && b2bcnt > 1) ++cur_atk;
+                if (clear && b2bcnt > 1) ++base;
             } else {
                 if (b2bcnt > 1) {
                     int b2b_copy = b2bcnt - 1;
                     double f = log1p(b2b_copy * 0.8);
                     while (f > 1) --f;
-                    cur_atk += (int)std::floor(1 + log1p(b2b_copy * 0.8)) + (b2b_copy == 1 ? 0 : (1 + f) / 3);
+                    base += (int)std::floor(1 + log1p(b2b_copy * 0.8)) + (b2b_copy == 1 ? 0 : (1 + f) / 3);
                 }
             }
-            cur_atk = (int)std::floor(cur_atk * (1.0 + 0.25 * (combo - 1)));
+            base = (int)std::floor(base * (1.0 + 0.25 * (combo - 1)));
             if (combo > 2)
-                cur_atk = std::max((int)std::floor(std::log1p(1.25 * (combo - 1))), cur_atk);
+                base = std::max((int)std::floor(std::log1p(1.25 * (combo - 1))), base);
+            if (base > 0) send_attack.push_back(base);
             break;
         }
 
-        if (map.count == 0) cur_atk += season_2 ? 5 : 10;
+        if (map.count == 0) send_attack.push_back(season_2 ? 5 : 10);
 
         ++total_block;
-        total_attack += cur_atk;
-        send_attack = cur_atk + surge_atk;
-        send_attack = recv_attack.reduce(send_attack);
-        send_attack = network_recv_attack.reduce(send_attack);
+        total_attack += std::accumulate(send_attack.begin(), send_attack.end(), 0);
+        auto reduce = [&](auto &recv)
+        {
+            while(!send_attack.empty() && !recv.empty()) {
+                if (send_attack.front() > recv.queue[0].lines) {
+                    send_attack.front() -= recv.queue[0].lines;
+                    recv.pop_front();
+                } else if (send_attack.front() < recv.queue[0].lines) {
+                    recv.queue[0].lines -= send_attack.front();
+                    send_attack.pop_front();
+                } else {
+                    send_attack.pop_front();
+                    recv.pop_front();
+                }
+            }
+        };
+        reduce(recv_attack);
+        reduce(network_recv_attack);
 
         int cap = GARBAGE_CAP;
         while (!recv_attack.empty() && recv_attack.queue[0].steps == 0 && cap > 0) {
@@ -406,10 +426,22 @@ static std::pair<double,double> play_match(BotInstance &b1, BotInstance &b2,
         b1.run();     b2.run();
         if (b1.dead || b2.dead) break;
 
-        int atk1 = b1.send_attack;
-        int atk2 = b2.send_attack;
-        if (atk1 > atk2)      b2.under_attack(atk1 - atk2);
-        else if (atk2 > atk1) b1.under_attack(atk2 - atk1);
+        auto& atk1 = b1.send_attack;
+        auto& atk2 = b2.send_attack;
+        while (!atk1.empty() && !atk2.empty()) {
+            if (atk1.front() > atk2.front()) {
+                atk1.front() -= atk2.front();
+                atk2.pop_front();
+            } else if (atk1.front() < atk2.front()) {
+                atk2.front() -= atk1.front();
+                atk1.pop_front();
+            } else {
+                atk1.pop_front();
+                atk2.pop_front();
+            }
+        }
+        for (int line : atk1) b2.under_attack(line);
+        for (int line : atk2) b1.under_attack(line);
     }
 
     double app1 = b1.total_block > 0 ? (double)b1.total_attack / b1.total_block : 0.0;

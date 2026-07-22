@@ -2066,7 +2066,7 @@ namespace ai_zzz
         result.max_combo = std::max(result.combo, result.max_combo);
         int b2b_cnt = config_->season_2 ? result.b2bcnt : std::min(7, result.b2bcnt);
         if (status.acc_attack && !result.acc_attack) {
-            result.like -= (static_cast<double>(status.acc_surge_attack) / status.acc_attack) * (p.surge_utilization - result.combo);
+            result.like -= static_cast<double>(status.acc_surge_attack) / status.acc_attack * status.combo * p.surge_utilization;
         }
         result.value += ((0.
             + ((result.attack * rate * p.attack)

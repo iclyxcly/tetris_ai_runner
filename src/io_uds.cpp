@@ -451,7 +451,8 @@ private:
 int main()
 {
     std::string path = std::getenv("HOME");
-    path += "/tetris_ai";
+    const char* sock = std::getenv("TETRIS_AI_SOCKET");
+    path += sock ? sock : "/tetris_ai";
     UdsServer server(path.c_str());
     server.set_handler(
         [&](const std::string &msg)

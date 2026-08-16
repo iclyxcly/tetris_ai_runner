@@ -1982,7 +1982,7 @@ namespace ai_zzz
             else if (node.type != ASpinType::None)
             {
                 result.like += p.tspin_2;
-                baseAtk = 2;
+                baseAtk = 4;
             }
             else
             {
